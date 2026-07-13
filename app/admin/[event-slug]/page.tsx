@@ -27,7 +27,6 @@ interface DropzoneProps {
   maxWidthClass?: string;
   previewUrl: string | null;
   onFile: (file: File) => void;
-  onReset: () => void;
 }
 
 function Dropzone({
@@ -39,7 +38,6 @@ function Dropzone({
   maxWidthClass,
   previewUrl,
   onFile,
-  onReset,
 }: DropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -204,10 +202,6 @@ export default function EventDetailPage() {
           aspectClass="aspect-video"
           previewUrl={heroPreview}
           onFile={handleHeroFile}
-          onReset={() => {
-            setHeroFile(null);
-            setHeroPreview(event.detail?.heroImage ?? null);
-          }}
         />
 
         <Dropzone
@@ -219,10 +213,6 @@ export default function EventDetailPage() {
           maxWidthClass="max-w-[220px] mx-auto"
           previewUrl={framePreview}
           onFile={handleFrameFile}
-          onReset={() => {
-            setFrameFile(null);
-            setFramePreview(event.detail?.frameImage ?? null);
-          }}
         />
 
         <div className="bg-surface border border-border rounded-[14px] p-5 mb-5">
