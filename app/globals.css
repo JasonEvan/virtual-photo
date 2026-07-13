@@ -1,13 +1,65 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Base palette */
+  --background: #E9E4DA;
+  --foreground: #1C1815;
+  --surface: #FCFAF6;
+  --white: #FFFFFF;
+
+  /* Text */
+  --text-primary: #1C1815;
+  --text-secondary: #4A443B;
+  --text-muted: #8B7F6E;
+
+  /* Borders */
+  --border: #E2DACA;
+  --border-subtle: #D3CABA;
+
+  /* Accent (gold) */
+  --accent: #B8935F;
+  --accent-light: #C9AD7F;
+  --accent-surface: #FBF6EA;
+  --accent-hover: #F7EFDB;
+
+  /* Text on accent surfaces */
+  --text-on-accent: #6B5D3F;
+  --text-on-accent-muted: #96876A;
+
+  /* Dark surfaces */
+  --dark: #1C1815;
+  --dark-text: #F7F3ED;
+
+  /* Success */
+  --success: #7A9B7E;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-white: var(--white);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+
+  --color-accent: var(--accent);
+  --color-accent-light: var(--accent-light);
+  --color-accent-surface: var(--accent-surface);
+  --color-accent-hover: var(--accent-hover);
+
+  --color-text-on-accent: var(--text-on-accent);
+  --color-text-on-accent-muted: var(--text-on-accent-muted);
+
+  --color-dark: var(--dark);
+  --color-dark-text: var(--dark-text);
+
+  --color-success: var(--success);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
