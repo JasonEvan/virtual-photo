@@ -7,6 +7,9 @@ export interface Event {
   slug: string;
   startDate: string;
   endDate: string;
+  heroImage?: string;
+  frameImage?: string;
+  coupleNames?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -34,6 +37,10 @@ export function getEventById(id: string): Event | undefined {
   return readEvents().find((e) => e.id === id);
 }
 
+export function getEventBySlug(slug: string): Event | undefined {
+  return readEvents().find((e) => e.slug === slug);
+}
+
 export function createEvent(data: {
   name: string;
   slug: string;
@@ -58,7 +65,7 @@ export function createEvent(data: {
 
 export function updateEvent(
   id: string,
-  data: Partial<Pick<Event, "name" | "slug" | "startDate" | "endDate">>
+  data: Partial<Pick<Event, "name" | "slug" | "startDate" | "endDate" | "heroImage" | "frameImage" | "coupleNames">>
 ): Event | null {
   const events = readEvents();
   const index = events.findIndex((e) => e.id === id);

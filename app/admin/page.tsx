@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 
 interface Event {
   id: string;
@@ -251,14 +252,17 @@ export default function AdminPage() {
                 className="bg-surface border border-border rounded-[14px] p-5"
               >
                 <div className="flex items-start justify-between mb-2">
-                  <div>
+                  <Link
+                    href={`/admin/${event.slug}`}
+                    className="flex-1 min-w-0 hover:opacity-70 transition-opacity"
+                  >
                     <div className="text-[14.5px] font-semibold text-text-primary">
                       {event.name}
                     </div>
                     <div className="text-[12px] text-text-muted mt-0.5">
                       /{event.slug}
                     </div>
-                  </div>
+                  </Link>
                   <div className="flex gap-1.5">
                     <button
                       onClick={() => openEdit(event)}
