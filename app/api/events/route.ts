@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getAllEvents, createEvent } from "@/lib/events";
 
 export async function GET() {
-  const events = getAllEvents();
+  const events = await getAllEvents();
   return NextResponse.json(events);
 }
 
@@ -17,6 +17,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const event = createEvent({ name, slug, startDate, endDate });
+  const event = await createEvent({ name, slug, startDate, endDate });
   return NextResponse.json(event, { status: 201 });
 }

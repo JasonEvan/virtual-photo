@@ -1,24 +1,67 @@
 import { NextResponse } from "next/server";
-import { getEventBySlug, updateEvent } from "@/lib/events";
+import { getEventBySlug, upsertEventDetail } from "@/lib/events";
+import { storage, BUCKET } from "@/lib/supabase";
 
 type RouteContext = { params: Promise<{ slug: string }> };
 
 export async function GET(_request: Request, { params }: RouteContext) {
   const { slug } = await params;
-  const event = getEventBySlug(slug);
+  const event = await getEventBySlug(slug);
   if (!event) {
     return NextResponse.json({ error: "Event not found" }, { status: 404 });
   }
   return NextResponse.json(event);
 }
 
+async function uploadFile(
+  file: File,
+  eventId: string,
+  field: string
+): Promise<string | null> {
+  if (!file || file.size === 0) return null;
+  const ext = file.name.split(".").pop() || "png";
+  const path = `${eventId}/${field}.${ext}`;
+
+  const { error } = await storage.from(BUCKET).upload(path, file, {
+    upsert: true,
+    contentType: file.type,
+  });
+  if (error) {
+    console.error("Upload failed:", error.message);
+    return null;
+  }
+
+  const { data } = storage.from(BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
+
 export async function PUT(request: Request, { params }: RouteContext) {
   const { slug } = await params;
-  const event = getEventBySlug(slug);
+  const event = await getEventBySlug(slug);
   if (!event) {
     return NextResponse.json({ error: "Event not found" }, { status: 404 });
   }
-  const body = await request.json();
-  const updated = updateEvent(event.id, body);
-  return NextResponse.json(updated);
+
+  const formData = await request.formData();
+  const heroFile = formData.get("heroImage") as File | null;
+  const frameFile = formData.get("frameImage") as File | null;
+  const coupleNames = formData.get("coupleNames") as string | null;
+
+  let heroUrl: string | null = event.detail?.heroImage ?? null;
+  let frameUrl: string | null = event.detail?.frameImage ?? null;
+
+  if (heroFile && heroFile.size > 0) {
+    heroUrl = await uploadFile(heroFile, event.id, "hero");
+  }
+  if (frameFile && frameFile.size > 0) {
+    frameUrl = await uploadFile(frameFile, event.id, "frame");
+  }
+
+  const detail = await upsertEventDetail(event.id, {
+    heroImage: heroUrl,
+    frameImage: frameUrl,
+    coupleNames: coupleNames ?? event.detail?.coupleNames ?? null,
+  });
+
+  return NextResponse.json({ ...event, detail });
 }

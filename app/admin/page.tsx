@@ -178,7 +178,8 @@ export default function AdminPage() {
                       setForm((prev) => ({ ...prev, slug: e.target.value }))
                     }
                     required
-                    className="w-full border border-border rounded-[10px] px-3 py-2.5 text-[13.5px] text-text-primary bg-white outline-none focus:border-accent transition-colors"
+                    disabled={!!editingId}
+                    className="w-full border border-border rounded-[10px] px-3 py-2.5 text-[13.5px] text-text-primary bg-white outline-none focus:border-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     placeholder="ayu-bagas"
                   />
                 </div>

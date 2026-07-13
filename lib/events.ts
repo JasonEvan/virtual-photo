@@ -1,89 +1,82 @@
-import { readFileSync, writeFileSync, existsSync } from "fs";
-import { join } from "path";
+import { eq } from "drizzle-orm";
+import { db } from "./db";
+import { events, eventDetails } from "./db/schema";
 
-export interface Event {
-  id: string;
+export type Event = typeof events.$inferSelect;
+export type EventDetail = typeof eventDetails.$inferSelect;
+export type EventWithDetail = Event & { detail: EventDetail | null };
+
+export async function getAllEvents(): Promise<EventWithDetail[]> {
+  const rows = await db.select().from(events).leftJoin(eventDetails, eq(events.id, eventDetails.eventId));
+  return rows.map((row) => ({
+    ...row.events,
+    detail: row.event_details,
+  }));
+}
+
+export async function getEventById(id: string): Promise<EventWithDetail | undefined> {
+  const rows = await db.select().from(events).leftJoin(eventDetails, eq(events.id, eventDetails.eventId)).where(eq(events.id, id));
+  const row = rows[0];
+  if (!row) return undefined;
+  return { ...row.events, detail: row.event_details };
+}
+
+export async function getEventBySlug(slug: string): Promise<EventWithDetail | undefined> {
+  const rows = await db.select().from(events).leftJoin(eventDetails, eq(events.id, eventDetails.eventId)).where(eq(events.slug, slug));
+  const row = rows[0];
+  if (!row) return undefined;
+  return { ...row.events, detail: row.event_details };
+}
+
+export async function createEvent(data: {
   name: string;
   slug: string;
   startDate: string;
   endDate: string;
-  heroImage?: string;
-  frameImage?: string;
-  coupleNames?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-const DATA_FILE = join(process.cwd(), "data", "events.json");
-
-function readEvents(): Event[] {
-  if (!existsSync(DATA_FILE)) {
-    writeFileSync(DATA_FILE, "[]", "utf-8");
-    return [];
-  }
-  const raw = readFileSync(DATA_FILE, "utf-8");
-  return JSON.parse(raw);
-}
-
-function writeEvents(events: Event[]): void {
-  writeFileSync(DATA_FILE, JSON.stringify(events, null, 2), "utf-8");
-}
-
-export function getAllEvents(): Event[] {
-  return readEvents();
-}
-
-export function getEventById(id: string): Event | undefined {
-  return readEvents().find((e) => e.id === id);
-}
-
-export function getEventBySlug(slug: string): Event | undefined {
-  return readEvents().find((e) => e.slug === slug);
-}
-
-export function createEvent(data: {
-  name: string;
-  slug: string;
-  startDate: string;
-  endDate: string;
-}): Event {
-  const events = readEvents();
-  const now = new Date().toISOString();
-  const event: Event = {
-    id: crypto.randomUUID(),
+}): Promise<Event> {
+  const [event] = await db.insert(events).values({
     name: data.name,
     slug: data.slug,
     startDate: data.startDate,
     endDate: data.endDate,
-    createdAt: now,
-    updatedAt: now,
-  };
-  events.push(event);
-  writeEvents(events);
+  }).returning();
   return event;
 }
 
-export function updateEvent(
-  id: string,
-  data: Partial<Pick<Event, "name" | "slug" | "startDate" | "endDate" | "heroImage" | "frameImage" | "coupleNames">>
-): Event | null {
-  const events = readEvents();
-  const index = events.findIndex((e) => e.id === id);
-  if (index === -1) return null;
-  events[index] = {
-    ...events[index],
-    ...data,
-    updatedAt: new Date().toISOString(),
-  };
-  writeEvents(events);
-  return events[index];
+export async function upsertEventDetail(
+  eventId: string,
+  data: {
+    heroImage?: string | null;
+    frameImage?: string | null;
+    coupleNames?: string | null;
+  }
+): Promise<EventDetail> {
+  const [existing] = await db.select().from(eventDetails).where(eq(eventDetails.eventId, eventId));
+  if (existing) {
+    const [updated] = await db.update(eventDetails)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(eventDetails.eventId, eventId))
+      .returning();
+    return updated;
+  }
+  const [created] = await db.insert(eventDetails)
+    .values({ eventId, ...data })
+    .returning();
+  return created;
 }
 
-export function deleteEvent(id: string): boolean {
-  const events = readEvents();
-  const index = events.findIndex((e) => e.id === id);
-  if (index === -1) return false;
-  events.splice(index, 1);
-  writeEvents(events);
-  return true;
+export async function updateEvent(
+  id: string,
+  data: Partial<Pick<Event, "name" | "slug" | "startDate" | "endDate">>
+): Promise<Event | null> {
+  const [updated] = await db.update(events)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(events.id, id))
+    .returning();
+  return updated ?? null;
+}
+
+export async function deleteEvent(id: string): Promise<boolean> {
+  const deleted = await db.delete(events).where(eq(events.id, id)).returning();
+  return deleted.length > 0;
 }
