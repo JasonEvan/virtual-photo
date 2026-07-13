@@ -2,6 +2,7 @@ import {
   pgTable,
   uuid,
   text,
+  integer,
   timestamp,
 } from "drizzle-orm/pg-core";
 
@@ -24,6 +25,7 @@ export const eventDetails = pgTable("event_details", {
   heroImage: text("hero_image"),
   frameImage: text("frame_image"),
   coupleNames: text("couple_names"),
+  maxPhotos: integer("max_photos").default(2).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

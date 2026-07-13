@@ -38,20 +38,34 @@ export default function AdminPage() {
   }, []);
 
   const fetchEvents = useCallback(async () => {
-    const res = await fetch("/api/events");
-    const data = await res.json();
-    setEvents(data);
-    setLoading(false);
+    try {
+      const res = await fetch("/api/events");
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data = await res.json();
+      setEvents(data);
+    } catch {
+      setEvents([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const res = await fetch("/api/events");
-      const data = await res.json();
-      if (!cancelled) {
-        setEvents(data);
-        setLoading(false);
+      try {
+        const res = await fetch("/api/events");
+        if (!res.ok) throw new Error("Failed to fetch");
+        const data = await res.json();
+        if (!cancelled) {
+          setEvents(data);
+        }
+      } catch {
+        if (!cancelled) {
+          setEvents([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
     return () => {

@@ -1,0 +1,1 @@
+ALTER TABLE "event_details" ADD COLUMN "max_photos" integer DEFAULT 2 NOT NULL;

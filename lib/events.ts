@@ -49,6 +49,7 @@ export async function upsertEventDetail(
     heroImage?: string | null;
     frameImage?: string | null;
     coupleNames?: string | null;
+    maxPhotos?: number;
   }
 ): Promise<EventDetail> {
   const [existing] = await db.select().from(eventDetails).where(eq(eventDetails.eventId, eventId));

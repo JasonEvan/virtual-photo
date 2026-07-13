@@ -7,6 +7,7 @@ interface EventDetail {
   heroImage?: string | null;
   frameImage?: string | null;
   coupleNames?: string | null;
+  maxPhotos?: number;
 }
 
 interface Event {
@@ -44,7 +45,6 @@ export default function GuestPage() {
   const [screen, setScreen] = useState<Screen>("landing");
 
   const [photosUsed, setPhotosUsed] = useState(0);
-  const maxPhotos = 2;
 
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [filter, setFilter] = useState<"Natural" | "Black & White">("Natural");
@@ -105,6 +105,11 @@ export default function GuestPage() {
     return () => stopCamera();
   }, [screen, startCamera, stopCamera]);
 
+  const coupleNames = event?.detail?.coupleNames ?? event?.name ?? "";
+  const heroImage = event?.detail?.heroImage;
+  const maxPhotos = event?.detail?.maxPhotos ?? 2;
+  const initials = getInitials(coupleNames);
+
   const navigateTo = useCallback((s: Screen) => {
     setFilter("Natural");
     setScreen(s);
@@ -130,10 +135,6 @@ export default function GuestPage() {
     setPhotosUsed((p) => p + 1);
     navigateTo("result");
   }, [photosUsed, maxPhotos, navigateTo]);
-
-  const coupleNames = event?.detail?.coupleNames ?? event?.name ?? "";
-  const heroImage = event?.detail?.heroImage;
-  const initials = getInitials(coupleNames);
 
   if (loading) {
     return (

@@ -7,6 +7,7 @@ interface EventDetail {
   heroImage?: string | null;
   frameImage?: string | null;
   coupleNames?: string | null;
+  maxPhotos?: number;
 }
 
 interface Event {
@@ -27,6 +28,7 @@ interface DropzoneProps {
   maxWidthClass?: string;
   previewUrl: string | null;
   onFile: (file: File) => void;
+  onReset: () => void;
 }
 
 function Dropzone({
@@ -38,6 +40,7 @@ function Dropzone({
   maxWidthClass,
   previewUrl,
   onFile,
+  onReset,
 }: DropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -101,6 +104,7 @@ export default function EventDetailPage() {
   const [framePreview, setFramePreview] = useState<string | null>(null);
 
   const [coupleNames, setCoupleNames] = useState("");
+  const [maxPhotos, setMaxPhotos] = useState(2);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -123,6 +127,7 @@ export default function EventDetailPage() {
         setHeroPreview(data.detail?.heroImage ?? null);
         setFramePreview(data.detail?.frameImage ?? null);
         setCoupleNames(data.detail?.coupleNames ?? "");
+        setMaxPhotos(data.detail?.maxPhotos ?? 2);
         setLoading(false);
       }
     })();
@@ -147,6 +152,7 @@ export default function EventDetailPage() {
     if (heroFile) formData.append("heroImage", heroFile);
     if (frameFile) formData.append("frameImage", frameFile);
     formData.append("coupleNames", coupleNames);
+    formData.append("maxPhotos", String(maxPhotos));
 
     const res = await fetch(`/api/events/slug/${slug}`, {
       method: "PUT",
@@ -159,6 +165,7 @@ export default function EventDetailPage() {
       setHeroPreview(updated.detail?.heroImage ?? null);
       setFramePreview(updated.detail?.frameImage ?? null);
       setCoupleNames(updated.detail?.coupleNames ?? "");
+      setMaxPhotos(updated.detail?.maxPhotos ?? 2);
       setHeroFile(null);
       setFrameFile(null);
       showToast("Perubahan disimpan");
@@ -202,6 +209,10 @@ export default function EventDetailPage() {
           aspectClass="aspect-video"
           previewUrl={heroPreview}
           onFile={handleHeroFile}
+          onReset={() => {
+            setHeroFile(null);
+            setHeroPreview(event.detail?.heroImage ?? null);
+          }}
         />
 
         <Dropzone
@@ -213,6 +224,10 @@ export default function EventDetailPage() {
           maxWidthClass="max-w-[220px] mx-auto"
           previewUrl={framePreview}
           onFile={handleFrameFile}
+          onReset={() => {
+            setFrameFile(null);
+            setFramePreview(event.detail?.frameImage ?? null);
+          }}
         />
 
         <div className="bg-surface border border-border rounded-[14px] p-5 mb-5">
@@ -228,6 +243,29 @@ export default function EventDetailPage() {
             onChange={(e) => setCoupleNames(e.target.value)}
             className="w-full border border-border rounded-[10px] px-3 py-2.5 text-[13.5px] text-text-primary bg-white outline-none focus:border-accent transition-colors"
             placeholder="Ayu & Bagas"
+          />
+        </div>
+
+        <div className="bg-surface border border-border rounded-[14px] p-5 mb-5">
+          <div className="text-[14.5px] font-semibold text-text-primary mb-0.5">
+            Batas foto per tamu
+          </div>
+          <div className="text-xs text-text-muted mb-4">
+            Jumlah foto yang bisa diambil oleh setiap tamu
+          </div>
+          <input
+            type="number"
+            min={1}
+            max={10}
+            value={maxPhotos}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === "") { setMaxPhotos(0); return; }
+              const n = parseInt(v);
+              if (!isNaN(n)) setMaxPhotos(n);
+            }}
+            onBlur={() => setMaxPhotos((p) => Math.max(1, p))}
+            className="w-full border border-border rounded-[10px] px-3 py-2.5 text-[13.5px] text-text-primary bg-white outline-none focus:border-accent transition-colors"
           />
         </div>
 
