@@ -1,0 +1,1 @@
+ALTER TABLE "event_details" ADD COLUMN "tagline" text;

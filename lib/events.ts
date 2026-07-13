@@ -49,6 +49,7 @@ export async function upsertEventDetail(
     heroImage?: string | null;
     frameImage?: string | null;
     coupleNames?: string | null;
+    tagline?: string | null;
     maxPhotos?: number;
   }
 ): Promise<EventDetail> {

@@ -7,6 +7,7 @@ interface EventDetail {
   heroImage?: string | null;
   frameImage?: string | null;
   coupleNames?: string | null;
+  tagline?: string | null;
   maxPhotos?: number;
 }
 
@@ -107,6 +108,7 @@ export default function GuestPage() {
 
   const coupleNames = event?.detail?.coupleNames ?? event?.name ?? "";
   const heroImage = event?.detail?.heroImage;
+  const tagline = event?.detail?.tagline || "Kami menikah";
   const maxPhotos = event?.detail?.maxPhotos ?? 2;
   const initials = getInitials(coupleNames);
 
@@ -190,7 +192,7 @@ export default function GuestPage() {
             <div className="px-6 py-5 flex-1 flex flex-col">
               <div className="mb-5">
                 <div className="text-[11px] tracking-[0.14em] uppercase text-accent font-medium mb-1.5">
-                  Kami menikah
+                  {tagline}
                 </div>
                 <div className="text-[30px] leading-[1.05] font-medium text-text-primary font-serif">
                   {coupleNames}
