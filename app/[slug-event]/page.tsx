@@ -206,16 +206,9 @@ export default function GuestPage() {
                 <span className="text-[12.5px] text-[#5A5347]">
                   Sisa kesempatan foto kamu
                 </span>
-                <div className="flex gap-1.5">
-                  {[1, 2].map((n) => (
-                    <div
-                      key={n}
-                      className={`w-[9px] h-[9px] rounded-full ${
-                        photosUsed >= n ? "bg-accent" : "bg-[#DCD3BF]"
-                      }`}
-                    />
-                  ))}
-                </div>
+                <span className="text-[12.5px] font-medium text-[#5A5347]">
+                  {maxPhotos - photosUsed}
+                </span>
               </div>
 
               {/* CTA */}
