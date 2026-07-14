@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getEventBySlug, upsertEventDetail } from "@/lib/events";
+import { getEventBySlug, upsertEventDetail, createGuests, countGuestsByEventId } from "@/lib/events";
 import { storage, BUCKET } from "@/lib/supabase";
 
 type RouteContext = { params: Promise<{ slug: string }> };
@@ -81,6 +81,20 @@ export async function PATCH(request: Request, { params }: RouteContext) {
 
   const body = await request.json();
   const numGuests = body.numGuests as number | null;
+
+  if (numGuests !== null && numGuests > 0) {
+    const existing = await countGuestsByEventId(event.id);
+    if (numGuests < existing) {
+      return NextResponse.json(
+        { error: `Jumlah tamu tidak boleh kurang dari ${existing} (sudah terdaftar)` },
+        { status: 400 }
+      );
+    }
+    if (numGuests > existing) {
+      const chancesLeft = event.detail?.maxPhotos ?? 2;
+      await createGuests(event.id, numGuests - existing, chancesLeft);
+    }
+  }
 
   const detail = await upsertEventDetail(event.id, { numGuests });
 

@@ -9,6 +9,7 @@ interface EventDetail {
   coupleNames?: string | null;
   tagline?: string | null;
   maxPhotos?: number;
+  numGuests?: number | null;
 }
 
 interface Event {
@@ -165,9 +166,23 @@ export default function EventDetailPage() {
       setNumGuests(updated.detail?.numGuests ?? "");
       showToast("Jumlah tamu disimpan");
     } else {
-      showToast("Gagal menyimpan");
+      const err = await res.json();
+      showToast(err.error || "Gagal menyimpan");
     }
     setSavingNumGuests(false);
+  };
+
+  const handleDownloadQR = async () => {
+    if (!event) return;
+    const res = await fetch(`/api/events/${event.id}/guests/qr`);
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `qrcodes-${event.slug}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleSave = async () => {
@@ -320,29 +335,38 @@ export default function EventDetailPage() {
               ? "Total tamu yang diundang ke event ini"
               : "Simpan detail event terlebih dahulu untuk mengatur jumlah tamu"}
           </div>
+          <input
+            type="number"
+            min={1}
+            value={numGuests}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === "") { setNumGuests(""); return; }
+              const n = parseInt(v);
+              if (!isNaN(n)) setNumGuests(n);
+            }}
+            disabled={!event.detail}
+            className="w-full border border-border rounded-[10px] px-3 py-2.5 text-[13.5px] text-text-primary bg-white outline-none focus:border-accent transition-colors disabled:bg-[#F0EDE8] disabled:text-text-muted mb-3"
+            placeholder="Contoh: 100"
+          />
           <div className="flex gap-2">
-            <input
-              type="number"
-              min={1}
-              value={numGuests}
-              onChange={(e) => {
-                const v = e.target.value;
-                if (v === "") { setNumGuests(""); return; }
-                const n = parseInt(v);
-                if (!isNaN(n)) setNumGuests(n);
-              }}
-              disabled={!event.detail}
-              className="flex-1 border border-border rounded-[10px] px-3 py-2.5 text-[13.5px] text-text-primary bg-white outline-none focus:border-accent transition-colors disabled:bg-[#F0EDE8] disabled:text-text-muted"
-              placeholder="Contoh: 100"
-            />
             <button
               type="button"
               onClick={handleSaveNumGuests}
               disabled={!event.detail || savingNumGuests || numGuests === ""}
-              className="bg-dark text-dark-text rounded-[10px] px-4 py-2.5 text-[13px] font-medium flex items-center gap-1.5 active:scale-[0.98] transition-transform disabled:opacity-50 shrink-0"
+              className="flex-1 bg-dark text-dark-text rounded-[10px] px-4 py-2.5 text-[13px] font-medium flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform disabled:opacity-50"
             >
               <i className="ti ti-device-floppy" />
               {savingNumGuests ? "..." : "Simpan"}
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadQR}
+              disabled={!event.detail?.numGuests}
+              className="flex-1 border border-border rounded-[10px] px-4 py-2.5 text-[13px] font-medium flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform disabled:opacity-50 bg-surface text-text-primary"
+            >
+              <i className="ti ti-download" />
+              Unduh
             </button>
           </div>
         </div>

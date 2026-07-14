@@ -1,11 +1,12 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, count } from "drizzle-orm";
 import { db } from "./db";
-import { events, eventDetails, guestPhotos } from "./db/schema";
+import { events, eventDetails, guestPhotos, guests } from "./db/schema";
 
 export type Event = typeof events.$inferSelect;
 export type EventDetail = typeof eventDetails.$inferSelect;
 export type EventWithDetail = Event & { detail: EventDetail | null };
 export type GuestPhoto = typeof guestPhotos.$inferSelect;
+export type Guest = typeof guests.$inferSelect;
 
 export async function getAllEvents(): Promise<EventWithDetail[]> {
   const rows = await db.select().from(events).leftJoin(eventDetails, eq(events.id, eventDetails.eventId));
@@ -104,4 +105,29 @@ export async function getGuestPhotosByEventId(eventId: string): Promise<GuestPho
   return db.select().from(guestPhotos)
     .where(eq(guestPhotos.eventId, eventId))
     .orderBy(desc(guestPhotos.createdAt));
+}
+
+export async function createGuests(
+  eventId: string,
+  count: number,
+  chancesLeft: number
+): Promise<void> {
+  const rows = Array.from({ length: count }, () => ({
+    eventId,
+    chancesLeft,
+  }));
+  await db.insert(guests).values(rows);
+}
+
+export async function countGuestsByEventId(eventId: string): Promise<number> {
+  const [row] = await db.select({ value: count() }).from(guests).where(eq(guests.eventId, eventId));
+  return row?.value ?? 0;
+}
+
+export async function deleteGuestsByEventId(eventId: string): Promise<void> {
+  await db.delete(guests).where(eq(guests.eventId, eventId));
+}
+
+export async function getGuestsByEventId(eventId: string): Promise<Guest[]> {
+  return db.select().from(guests).where(eq(guests.eventId, eventId));
 }
