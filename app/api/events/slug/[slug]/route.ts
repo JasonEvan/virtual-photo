@@ -71,3 +71,18 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
   return NextResponse.json({ ...event, detail });
 }
+
+export async function PATCH(request: Request, { params }: RouteContext) {
+  const { slug } = await params;
+  const event = await getEventBySlug(slug);
+  if (!event) {
+    return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  }
+
+  const body = await request.json();
+  const numGuests = body.numGuests as number | null;
+
+  const detail = await upsertEventDetail(event.id, { numGuests });
+
+  return NextResponse.json({ ...event, detail });
+}

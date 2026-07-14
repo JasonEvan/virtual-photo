@@ -52,6 +52,7 @@ export async function upsertEventDetail(
     coupleNames?: string | null;
     tagline?: string | null;
     maxPhotos?: number;
+    numGuests?: number | null;
   }
 ): Promise<EventDetail> {
   const [existing] = await db.select().from(eventDetails).where(eq(eventDetails.eventId, eventId));

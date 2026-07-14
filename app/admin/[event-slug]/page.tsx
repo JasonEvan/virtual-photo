@@ -107,6 +107,8 @@ export default function EventDetailPage() {
   const [coupleNames, setCoupleNames] = useState("");
   const [tagline, setTagline] = useState("");
   const [maxPhotos, setMaxPhotos] = useState(2);
+  const [numGuests, setNumGuests] = useState<number | "">("");
+  const [savingNumGuests, setSavingNumGuests] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -131,6 +133,7 @@ export default function EventDetailPage() {
         setCoupleNames(data.detail?.coupleNames ?? "");
         setTagline(data.detail?.tagline ?? "");
         setMaxPhotos(data.detail?.maxPhotos ?? 2);
+        setNumGuests(data.detail?.numGuests ?? "");
         setLoading(false);
       }
     })();
@@ -147,6 +150,24 @@ export default function EventDetailPage() {
   const handleFrameFile = (file: File) => {
     setFrameFile(file);
     setFramePreview(URL.createObjectURL(file));
+  };
+
+  const handleSaveNumGuests = async () => {
+    setSavingNumGuests(true);
+    const res = await fetch(`/api/events/slug/${slug}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ numGuests: numGuests === "" ? null : Number(numGuests) }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setEvent(updated);
+      setNumGuests(updated.detail?.numGuests ?? "");
+      showToast("Jumlah tamu disimpan");
+    } else {
+      showToast("Gagal menyimpan");
+    }
+    setSavingNumGuests(false);
   };
 
   const handleSave = async () => {
@@ -288,6 +309,39 @@ export default function EventDetailPage() {
             onBlur={() => setMaxPhotos((p) => Math.max(1, p))}
             className="w-full border border-border rounded-[10px] px-3 py-2.5 text-[13.5px] text-text-primary bg-white outline-none focus:border-accent transition-colors"
           />
+        </div>
+
+        <div className="bg-surface border border-border rounded-[14px] p-5 mb-5">
+          <div className="text-[14.5px] font-semibold text-text-primary mb-0.5">
+            Jumlah tamu
+          </div>
+          <div className="text-xs text-text-muted mb-4">
+            Total tamu yang diundang ke event ini
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="number"
+              min={1}
+              value={numGuests}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "") { setNumGuests(""); return; }
+                const n = parseInt(v);
+                if (!isNaN(n)) setNumGuests(n);
+              }}
+              className="flex-1 border border-border rounded-[10px] px-3 py-2.5 text-[13.5px] text-text-primary bg-white outline-none focus:border-accent transition-colors"
+              placeholder="Contoh: 100"
+            />
+            <button
+              type="button"
+              onClick={handleSaveNumGuests}
+              disabled={savingNumGuests || numGuests === ""}
+              className="bg-dark text-dark-text rounded-[10px] px-4 py-2.5 text-[13px] font-medium flex items-center gap-1.5 active:scale-[0.98] transition-transform disabled:opacity-50 shrink-0"
+            >
+              <i className="ti ti-device-floppy" />
+              {savingNumGuests ? "..." : "Simpan"}
+            </button>
+          </div>
         </div>
 
         <button
