@@ -37,6 +37,38 @@ function formatDate(dateStr: string): string {
   });
 }
 
+function removeGreenScreen(imageUrl: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(imageUrl);
+        return;
+      }
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const px = imageData.data;
+      for (let i = 0; i < px.length; i += 4) {
+        const r = px[i];
+        const g = px[i + 1];
+        const b = px[i + 2];
+        if (g > 80 && g > r * 1.4 && g > b * 1.4) {
+          px[i + 3] = 0;
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = () => resolve(imageUrl);
+    img.src = imageUrl;
+  });
+}
+
 export default function GuestPage() {
   const params = useParams();
   const slug = params["slug-event"] as string;
@@ -49,6 +81,7 @@ export default function GuestPage() {
 
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [filter, setFilter] = useState<"Natural" | "Black & White">("Natural");
+  const [processedFrame, setProcessedFrame] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -73,6 +106,22 @@ export default function GuestPage() {
       cancelled = true;
     };
   }, [slug]);
+
+  // Process frame image (chroma key green screen removal)
+  useEffect(() => {
+    const frameUrl = event?.detail?.frameImage;
+    if (!frameUrl) {
+      setProcessedFrame(null);
+      return;
+    }
+    let cancelled = false;
+    removeGreenScreen(frameUrl).then((result) => {
+      if (!cancelled) setProcessedFrame(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [event?.detail?.frameImage]);
 
   // Camera management
   const startCamera = useCallback(async () => {
@@ -308,28 +357,58 @@ export default function GuestPage() {
             {/* Result content */}
             <div className="flex-1 px-6 py-6 flex flex-col">
               {/* Polaroid */}
-              <div className="bg-surface p-3 pb-4 rounded shadow-[0_8px_24px_rgba(28,24,21,0.18)] -rotate-[1.5deg] self-center my-1.5 animate-[polaroidIn_0.5s_ease]">
-                <div
-                  className={`w-[250px] h-[250px] rounded-sm overflow-hidden flex items-center justify-center bg-gradient-to-br from-[#D9CBAE] via-accent-light to-accent ${
-                    filter === "Black & White"
-                      ? "grayscale contrast-[1.05]"
-                      : ""
-                  }`}
-                >
-                  {capturedPhoto ? (
+              {processedFrame && capturedPhoto ? (
+                <>
+                  <div
+                    className={`relative self-center my-1.5 -rotate-[1.5deg] animate-[polaroidIn_0.5s_ease] ${
+                      filter === "Black & White"
+                        ? "grayscale contrast-[1.05]"
+                        : ""
+                    }`}
+                  >
                     <img
                       src={capturedPhoto}
                       alt=""
-                      className="w-full h-full object-cover"
+                      className="absolute inset-0 w-full h-full object-cover"
                     />
-                  ) : (
-                    <i className="ti ti-user text-[48px] text-dark-text" />
-                  )}
+                    <img
+                      src={processedFrame}
+                      alt=""
+                      className="relative w-full block"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className="bg-surface p-3 pb-4 rounded shadow-[0_8px_24px_rgba(28,24,21,0.18)] -rotate-[1.5deg] self-center my-1.5 animate-[polaroidIn_0.5s_ease]">
+                  <div
+                    className={`w-[250px] h-[250px] rounded-sm overflow-hidden flex items-center justify-center bg-gradient-to-br from-[#D9CBAE] via-accent-light to-accent ${
+                      filter === "Black & White"
+                        ? "grayscale contrast-[1.05]"
+                        : ""
+                    }`}
+                  >
+                    {capturedPhoto ? (
+                      <img
+                        src={capturedPhoto}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <i className="ti ti-user text-[48px] text-dark-text" />
+                    )}
+                  </div>
                 </div>
-                <div className="text-center text-[17px] text-text-primary mt-2.5 font-medium font-serif">
-                  {coupleNames}
-                </div>
-              </div>
+              )}
+
+              {/* Retake */}
+              <button
+                type="button"
+                onClick={() => navigateTo("camera")}
+                className="w-full border border-border-subtle rounded-xl py-[15px] text-[14.5px] font-medium text-text-primary flex items-center justify-center gap-2 mt-4 active:bg-accent-hover transition-colors"
+              >
+                <i className="ti ti-camera" />
+                Ambil ulang foto
+              </button>
 
               {/* Filter toggle */}
               <div className="flex gap-2 mt-5 mb-5">
