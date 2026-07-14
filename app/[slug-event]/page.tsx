@@ -82,6 +82,8 @@ export default function GuestPage() {
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [filter, setFilter] = useState<"Natural" | "Black & White">("Natural");
   const [processedFrame, setProcessedFrame] = useState<string | null>(null);
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -186,6 +188,31 @@ export default function GuestPage() {
     setPhotosUsed((p) => p + 1);
     navigateTo("result");
   }, [photosUsed, maxPhotos, navigateTo]);
+
+  const savePhoto = useCallback(async () => {
+    if (!capturedPhoto || !event || saving) return;
+    setSaving(true);
+    try {
+      const res = await fetch(capturedPhoto);
+      const blob = await res.blob();
+      const file = new File([blob], "photo.jpg", { type: "image/jpeg" });
+
+      const formData = new FormData();
+      formData.append("photo", file);
+      formData.append("guestName", "John Doe");
+      formData.append("notes", notes);
+
+      const saveRes = await fetch(`/api/events/${event.id}/photos`, {
+        method: "POST",
+        body: formData,
+      });
+      if (saveRes.ok) {
+        navigateTo("done");
+      }
+    } finally {
+      setSaving(false);
+    }
+  }, [capturedPhoto, event, saving, notes, navigateTo]);
 
   if (loading) {
     return (
@@ -432,6 +459,8 @@ export default function GuestPage() {
               <textarea
                 rows={2}
                 placeholder="Tulis ucapan untuk pengantin..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
                 className="w-full border border-border rounded-xl px-3.5 py-3 text-[13.5px] font-inherit resize-none bg-surface text-text-primary placeholder:text-[#A79B87] mb-3"
               />
 
@@ -458,11 +487,12 @@ export default function GuestPage() {
               {/* Actions */}
               <button
                 type="button"
-                onClick={() => navigateTo("done")}
-                className="w-full bg-dark text-dark-text rounded-xl py-4 text-[15px] font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                onClick={savePhoto}
+                disabled={saving}
+                className="w-full bg-dark text-dark-text rounded-xl py-4 text-[15px] font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50"
               >
                 <i className="ti ti-check" />
-                Simpan foto
+                {saving ? "Menyimpan..." : "Simpan foto"}
               </button>
               <button
                 type="button"
@@ -497,6 +527,7 @@ export default function GuestPage() {
               onClick={() => {
                 setCapturedPhoto(null);
                 setPhotosUsed(0);
+                setNotes("");
                 navigateTo("landing");
               }}
               className="w-full bg-dark text-dark-text rounded-xl py-4 text-[15px] font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"

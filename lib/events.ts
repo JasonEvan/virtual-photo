@@ -1,10 +1,11 @@
 import { eq } from "drizzle-orm";
 import { db } from "./db";
-import { events, eventDetails } from "./db/schema";
+import { events, eventDetails, guestPhotos } from "./db/schema";
 
 export type Event = typeof events.$inferSelect;
 export type EventDetail = typeof eventDetails.$inferSelect;
 export type EventWithDetail = Event & { detail: EventDetail | null };
+export type GuestPhoto = typeof guestPhotos.$inferSelect;
 
 export async function getAllEvents(): Promise<EventWithDetail[]> {
   const rows = await db.select().from(events).leftJoin(eventDetails, eq(events.id, eventDetails.eventId));
@@ -81,4 +82,19 @@ export async function updateEvent(
 export async function deleteEvent(id: string): Promise<boolean> {
   const deleted = await db.delete(events).where(eq(events.id, id)).returning();
   return deleted.length > 0;
+}
+
+export async function createGuestPhoto(data: {
+  eventId: string;
+  picturePath: string;
+  guestName: string;
+  notes?: string | null;
+}): Promise<GuestPhoto> {
+  const [row] = await db.insert(guestPhotos).values({
+    eventId: data.eventId,
+    picturePath: data.picturePath,
+    guestName: data.guestName,
+    notes: data.notes ?? null,
+  }).returning();
+  return row;
 }

@@ -30,3 +30,14 @@ export const eventDetails = pgTable("event_details", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const guestPhotos = pgTable("guest_photos", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  eventId: uuid("event_id")
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
+  picturePath: text("picture_path").notNull(),
+  guestName: text("guest_name").notNull().default("John Doe"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
