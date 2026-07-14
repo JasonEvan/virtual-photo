@@ -131,3 +131,8 @@ export async function deleteGuestsByEventId(eventId: string): Promise<void> {
 export async function getGuestsByEventId(eventId: string): Promise<Guest[]> {
   return db.select().from(guests).where(eq(guests.eventId, eventId));
 }
+
+export async function getGuestById(guestId: string): Promise<Guest | undefined> {
+  const [row] = await db.select().from(guests).where(eq(guests.id, guestId));
+  return row;
+}

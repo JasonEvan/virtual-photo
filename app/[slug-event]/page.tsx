@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 
 interface EventDetail {
   heroImage?: string | null;
@@ -81,10 +81,13 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 export default function GuestPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const slug = params["slug-event"] as string;
+  const guestId = searchParams.get("guest");
 
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
+  const [guestValid, setGuestValid] = useState<boolean | null>(null);
   const [screen, setScreen] = useState<Screen>("landing");
 
   const [photosUsed, setPhotosUsed] = useState(0);
@@ -124,6 +127,29 @@ export default function GuestPage() {
       cancelled = true;
     };
   }, [slug]);
+
+  // Validate guest query param
+  useEffect(() => {
+    if (!guestId || !event) {
+      if (event) setGuestValid(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const res = await fetch(
+        `/api/events/${event.id}/guests/validate?guestId=${guestId}`
+      );
+      if (!res.ok) {
+        if (!cancelled) setGuestValid(false);
+        return;
+      }
+      const data = await res.json();
+      if (!cancelled) setGuestValid(data.valid);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [guestId, event]);
 
   // Fetch guest photos
   useEffect(() => {
@@ -270,6 +296,25 @@ export default function GuestPage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-sm text-text-muted">Event tidak ditemukan.</p>
+      </div>
+    );
+  }
+
+  if (!guestId || guestValid === false) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-6">
+        <div className="text-center max-w-[300px]">
+          <div className="w-[72px] h-[72px] mx-auto mb-5 rounded-full bg-accent-hover flex items-center justify-center">
+            <i className="ti ti-qrcode text-[32px] text-accent" />
+          </div>
+          <div className="text-[17px] font-medium text-text-primary mb-2">
+            Tautan tidak valid
+          </div>
+          <div className="text-[13px] text-text-muted leading-relaxed">
+            Silakan kunjungi website ini melalui pemindaian QR code yang
+            diberikan oleh admin.
+          </div>
+        </div>
       </div>
     );
   }
