@@ -316,7 +316,9 @@ export default function EventDetailPage() {
             Jumlah tamu
           </div>
           <div className="text-xs text-text-muted mb-4">
-            Total tamu yang diundang ke event ini
+            {event.detail
+              ? "Total tamu yang diundang ke event ini"
+              : "Simpan detail event terlebih dahulu untuk mengatur jumlah tamu"}
           </div>
           <div className="flex gap-2">
             <input
@@ -329,13 +331,14 @@ export default function EventDetailPage() {
                 const n = parseInt(v);
                 if (!isNaN(n)) setNumGuests(n);
               }}
-              className="flex-1 border border-border rounded-[10px] px-3 py-2.5 text-[13.5px] text-text-primary bg-white outline-none focus:border-accent transition-colors"
+              disabled={!event.detail}
+              className="flex-1 border border-border rounded-[10px] px-3 py-2.5 text-[13.5px] text-text-primary bg-white outline-none focus:border-accent transition-colors disabled:bg-[#F0EDE8] disabled:text-text-muted"
               placeholder="Contoh: 100"
             />
             <button
               type="button"
               onClick={handleSaveNumGuests}
-              disabled={savingNumGuests || numGuests === ""}
+              disabled={!event.detail || savingNumGuests || numGuests === ""}
               className="bg-dark text-dark-text rounded-[10px] px-4 py-2.5 text-[13px] font-medium flex items-center gap-1.5 active:scale-[0.98] transition-transform disabled:opacity-50 shrink-0"
             >
               <i className="ti ti-device-floppy" />
