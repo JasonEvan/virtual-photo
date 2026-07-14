@@ -69,6 +69,16 @@ function removeGreenScreen(imageUrl: string): Promise<string> {
   });
 }
 
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
 export default function GuestPage() {
   const params = useParams();
   const slug = params["slug-event"] as string;
@@ -212,8 +222,23 @@ export default function GuestPage() {
     if (!capturedPhoto || !event || saving) return;
     setSaving(true);
     try {
-      const res = await fetch(capturedPhoto);
-      const blob = await res.blob();
+      let blob: Blob;
+      if (processedFrame) {
+        const photoImg = await loadImage(capturedPhoto);
+        const frameImg = await loadImage(processedFrame);
+        const canvas = document.createElement("canvas");
+        canvas.width = photoImg.naturalWidth;
+        canvas.height = photoImg.naturalHeight;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(photoImg, 0, 0);
+        ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
+        blob = await new Promise<Blob>((resolve) =>
+          canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.92)
+        );
+      } else {
+        const res = await fetch(capturedPhoto);
+        blob = await res.blob();
+      }
       const file = new File([blob], "photo.jpg", { type: "image/jpeg" });
 
       const formData = new FormData();
@@ -231,7 +256,7 @@ export default function GuestPage() {
     } finally {
       setSaving(false);
     }
-  }, [capturedPhoto, event, saving, notes, navigateTo]);
+  }, [capturedPhoto, event, saving, notes, navigateTo, processedFrame]);
 
   if (loading) {
     return (
