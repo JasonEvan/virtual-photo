@@ -91,6 +91,7 @@ export default function GuestPage() {
   const [screen, setScreen] = useState<Screen>("landing");
 
   const [photosUsed, setPhotosUsed] = useState(0);
+  const [chancesLeft, setChancesLeft] = useState<number | null>(null);
 
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [filter, setFilter] = useState<"Natural" | "Black & White">("Natural");
@@ -144,7 +145,10 @@ export default function GuestPage() {
         return;
       }
       const data = await res.json();
-      if (!cancelled) setGuestValid(data.valid);
+      if (!cancelled) {
+        setGuestValid(data.valid);
+        if (data.valid) setChancesLeft(data.chancesLeft);
+      }
     })();
     return () => {
       cancelled = true;
@@ -215,7 +219,6 @@ export default function GuestPage() {
   const coupleNames = event?.detail?.coupleNames ?? event?.name ?? "";
   const heroImage = event?.detail?.heroImage;
   const tagline = event?.detail?.tagline || "Kami menikah";
-  const maxPhotos = event?.detail?.maxPhotos ?? 2;
   const initials = getInitials(coupleNames);
 
   const navigateTo = useCallback((s: Screen) => {
@@ -224,7 +227,7 @@ export default function GuestPage() {
   }, []);
 
   const takePhoto = useCallback(() => {
-    if (photosUsed >= maxPhotos) return;
+    if (chancesLeft === null || photosUsed >= chancesLeft) return;
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas || !video.videoWidth) return;
@@ -242,7 +245,7 @@ export default function GuestPage() {
     setCapturedPhoto(dataUrl);
     setPhotosUsed((p) => p + 1);
     navigateTo("result");
-  }, [photosUsed, maxPhotos, navigateTo]);
+  }, [photosUsed, chancesLeft, navigateTo]);
 
   const savePhoto = useCallback(async () => {
     if (!capturedPhoto || !event || saving) return;
@@ -271,18 +274,20 @@ export default function GuestPage() {
       formData.append("photo", file);
       formData.append("guestName", "John Doe");
       formData.append("notes", notes);
+      if (guestId) formData.append("guestId", guestId);
 
       const saveRes = await fetch(`/api/events/${event.id}/photos`, {
         method: "POST",
         body: formData,
       });
       if (saveRes.ok) {
+        setChancesLeft((c) => c !== null ? c - 1 : c);
         navigateTo("done");
       }
     } finally {
       setSaving(false);
     }
-  }, [capturedPhoto, event, saving, notes, navigateTo, processedFrame]);
+  }, [capturedPhoto, event, saving, notes, navigateTo, processedFrame, guestId]);
 
   if (loading) {
     return (
@@ -375,7 +380,7 @@ export default function GuestPage() {
                   Sisa kesempatan foto kamu
                 </span>
                 <span className="text-[12.5px] font-medium text-[#5A5347]">
-                  {maxPhotos - photosUsed}
+                  {chancesLeft !== null ? chancesLeft - photosUsed : 0}
                 </span>
               </div>
 
@@ -383,7 +388,7 @@ export default function GuestPage() {
               <button
                 type="button"
                 onClick={() => navigateTo("camera")}
-                disabled={photosUsed >= maxPhotos}
+                disabled={chancesLeft === null || photosUsed >= chancesLeft}
                 className="w-full bg-dark text-dark-text rounded-xl py-4 text-[15px] font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:bg-[#C9C2B4] disabled:cursor-not-allowed"
               >
                 <i className="ti ti-camera" />
@@ -477,7 +482,7 @@ export default function GuestPage() {
                 />
               </div>
               <div className="text-center text-[11.5px] text-[#A79B87] mt-3.5">
-                Foto ini akan memakai 1 dari {maxPhotos - photosUsed}{" "}
+                Foto ini akan memakai 1 dari {chancesLeft !== null ? chancesLeft - photosUsed : 0}{" "}
                 kesempatanmu
               </div>
             </div>

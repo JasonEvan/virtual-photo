@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getEventById, createGuestPhoto, getGuestPhotosByEventId } from "@/lib/events";
+import { getEventById, createGuestPhoto, getGuestPhotosByEventId, decrementGuestChances } from "@/lib/events";
 import { storage, BUCKET } from "@/lib/supabase";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -31,6 +31,7 @@ export async function POST(request: Request, { params }: RouteContext) {
   const photo = formData.get("photo") as File | null;
   const guestName = (formData.get("guestName") as string) || "John Doe";
   const notes = formData.get("notes") as string | null;
+  const guestId = formData.get("guestId") as string | null;
 
   if (!photo || photo.size === 0) {
     return NextResponse.json({ error: "Photo is required" }, { status: 400 });
@@ -54,6 +55,10 @@ export async function POST(request: Request, { params }: RouteContext) {
     guestName,
     notes,
   });
+
+  if (guestId) {
+    await decrementGuestChances(guestId);
+  }
 
   return NextResponse.json(row, { status: 201 });
 }

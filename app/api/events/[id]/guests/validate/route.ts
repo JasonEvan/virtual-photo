@@ -21,5 +21,5 @@ export async function GET(request: Request, { params }: RouteContext) {
     return NextResponse.json({ valid: false });
   }
 
-  return NextResponse.json({ valid: true });
+  return NextResponse.json({ valid: true, chancesLeft: guest.chancesLeft });
 }

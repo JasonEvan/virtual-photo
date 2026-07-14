@@ -1,4 +1,4 @@
-import { eq, desc, count } from "drizzle-orm";
+import { eq, desc, count, sql } from "drizzle-orm";
 import { db } from "./db";
 import { events, eventDetails, guestPhotos, guests } from "./db/schema";
 
@@ -134,5 +134,13 @@ export async function getGuestsByEventId(eventId: string): Promise<Guest[]> {
 
 export async function getGuestById(guestId: string): Promise<Guest | undefined> {
   const [row] = await db.select().from(guests).where(eq(guests.id, guestId));
+  return row;
+}
+
+export async function decrementGuestChances(guestId: string): Promise<Guest | undefined> {
+  const [row] = await db.update(guests)
+    .set({ chancesLeft: sql`${guests.chancesLeft} - 1` })
+    .where(eq(guests.id, guestId))
+    .returning();
   return row;
 }
