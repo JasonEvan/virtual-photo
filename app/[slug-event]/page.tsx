@@ -84,6 +84,12 @@ export default function GuestPage() {
   const [processedFrame, setProcessedFrame] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [guestPhotos, setGuestPhotos] = useState<
+    { id: string; pictureUrl: string; guestName: string; notes: string | null }[]
+  >([]);
+  const [selectedPhoto, setSelectedPhoto] = useState<
+    { pictureUrl: string; guestName: string; notes: string | null } | null
+  >(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -108,6 +114,19 @@ export default function GuestPage() {
       cancelled = true;
     };
   }, [slug]);
+
+  // Fetch guest photos
+  useEffect(() => {
+    if (!event) return;
+    let cancelled = false;
+    (async () => {
+      const res = await fetch(`/api/events/${event.id}/photos`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!cancelled) setGuestPhotos(data);
+    })();
+    return () => { cancelled = true; };
+  }, [event]);
 
   // Process frame image (chroma key green screen removal)
   useEffect(() => {
@@ -300,6 +319,42 @@ export default function GuestPage() {
                 <i className="ti ti-camera" />
                 Mulai ambil foto
               </button>
+
+              {/* Guest photos gallery */}
+              {guestPhotos.length > 0 && (
+                <div className="mt-6 pt-5 border-t border-[#DCD3BF]">
+                  <div className="text-[11px] tracking-[0.14em] uppercase text-accent font-medium mb-3">
+                    Galeri foto tamu
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {guestPhotos.map((gp) => (
+                      <button
+                        key={gp.id}
+                        type="button"
+                        onClick={() =>
+                          setSelectedPhoto({
+                            pictureUrl: gp.pictureUrl,
+                            guestName: gp.guestName,
+                            notes: gp.notes,
+                          })
+                        }
+                        className="rounded-lg overflow-hidden border border-border bg-surface cursor-pointer active:scale-[0.97] transition-transform text-left"
+                      >
+                        <img
+                          src={gp.pictureUrl}
+                          alt={gp.guestName}
+                          className="w-full aspect-square object-cover"
+                        />
+                        {gp.notes && (
+                          <div className="px-1.5 py-1.5 text-[10px] text-text-muted leading-tight line-clamp-2">
+                            {gp.notes}
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -539,6 +594,42 @@ export default function GuestPage() {
         )}
       </div>
 
+      {/* Photo detail modal */}
+      {selectedPhoto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(28,24,21,0.7)] animate-[fadeIn_0.2s_ease]"
+          onClick={() => setSelectedPhoto(null)}
+        >
+          <div
+            className="w-full max-w-[340px] mx-4 bg-[#F7F3ED] rounded-[24px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.4)] animate-[modalIn_0.25s_ease]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={selectedPhoto.pictureUrl}
+              alt={selectedPhoto.guestName}
+              className="w-full aspect-[3/4] object-cover"
+            />
+            <div className="px-5 py-4">
+              <div className="text-[14px] font-medium text-text-primary">
+                {selectedPhoto.guestName}
+              </div>
+              {selectedPhoto.notes && (
+                <div className="text-[13px] text-text-muted mt-1 leading-relaxed">
+                  {selectedPhoto.notes}
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedPhoto(null)}
+              className="w-full border-t border-border py-3.5 text-[13.5px] font-medium text-text-primary active:bg-accent-hover transition-colors"
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Global fadeIn keyframe */}
       <style>{`
         @keyframes fadeIn {
@@ -548,6 +639,10 @@ export default function GuestPage() {
         @keyframes polaroidIn {
           from { opacity: 0; transform: rotate(-1.5deg) translateY(14px) scale(0.96); }
           to { opacity: 1; transform: rotate(-1.5deg) translateY(0) scale(1); }
+        }
+        @keyframes modalIn {
+          from { opacity: 0; transform: scale(0.92); }
+          to { opacity: 1; transform: scale(1); }
         }
       `}</style>
     </div>

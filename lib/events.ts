@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { db } from "./db";
 import { events, eventDetails, guestPhotos } from "./db/schema";
 
@@ -97,4 +97,10 @@ export async function createGuestPhoto(data: {
     notes: data.notes ?? null,
   }).returning();
   return row;
+}
+
+export async function getGuestPhotosByEventId(eventId: string): Promise<GuestPhoto[]> {
+  return db.select().from(guestPhotos)
+    .where(eq(guestPhotos.eventId, eventId))
+    .orderBy(desc(guestPhotos.createdAt));
 }
