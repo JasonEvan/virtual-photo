@@ -7,8 +7,6 @@ import Image from "next/image";
 interface EventDetail {
   heroImage?: string | null;
   frameImage?: string | null;
-  coupleNames?: string | null;
-  tagline?: string | null;
   maxPhotos?: number;
   numGuests?: number | null;
 }
@@ -101,8 +99,6 @@ export default function EventDetailPage() {
   const [frameFile, setFrameFile] = useState<File | null>(null);
   const [framePreview, setFramePreview] = useState<string | null>(null);
 
-  const [coupleNames, setCoupleNames] = useState("");
-  const [tagline, setTagline] = useState("");
   const [maxPhotos, setMaxPhotos] = useState(2);
   const [numGuests, setNumGuests] = useState<number | "">("");
   const [savingNumGuests, setSavingNumGuests] = useState(false);
@@ -127,8 +123,6 @@ export default function EventDetailPage() {
         setEvent(data);
         setHeroPreview(data.detail?.heroImage ?? null);
         setFramePreview(data.detail?.frameImage ?? null);
-        setCoupleNames(data.detail?.coupleNames ?? "");
-        setTagline(data.detail?.tagline ?? "");
         setMaxPhotos(data.detail?.maxPhotos ?? 2);
         setNumGuests(data.detail?.numGuests ?? "");
         setLoading(false);
@@ -188,8 +182,6 @@ export default function EventDetailPage() {
     const formData = new FormData();
     if (heroFile) formData.append("heroImage", heroFile);
     if (frameFile) formData.append("frameImage", frameFile);
-    formData.append("coupleNames", coupleNames);
-    formData.append("tagline", tagline);
     formData.append("maxPhotos", String(maxPhotos));
 
     const res = await fetch(`/api/events/slug/${slug}`, {
@@ -202,8 +194,6 @@ export default function EventDetailPage() {
       setEvent(updated);
       setHeroPreview(updated.detail?.heroImage ?? null);
       setFramePreview(updated.detail?.frameImage ?? null);
-      setCoupleNames(updated.detail?.coupleNames ?? "");
-      setTagline(updated.detail?.tagline ?? "");
       setMaxPhotos(updated.detail?.maxPhotos ?? 2);
       setHeroFile(null);
       setFrameFile(null);
@@ -268,38 +258,6 @@ export default function EventDetailPage() {
             setFramePreview(event.detail?.frameImage ?? null);
           }}
         />
-
-        <div className="bg-surface border border-border rounded-[14px] p-5 mb-5">
-          <div className="text-[14.5px] font-semibold text-text-primary mb-0.5">
-            Nama mempelai
-          </div>
-          <div className="text-xs text-text-muted mb-4">
-            Ditampilkan di hero section
-          </div>
-          <input
-            type="text"
-            value={coupleNames}
-            onChange={(e) => setCoupleNames(e.target.value)}
-            className="w-full border border-border rounded-[10px] px-3 py-2.5 text-[13.5px] text-text-primary bg-white outline-none focus:border-accent transition-colors"
-            placeholder="Ayu & Bagas"
-          />
-        </div>
-
-        <div className="bg-surface border border-border rounded-[14px] p-5 mb-5">
-          <div className="text-[14.5px] font-semibold text-text-primary mb-0.5">
-            Tagline
-          </div>
-          <div className="text-xs text-text-muted mb-4">
-            Teks kecil di atas nama mempelai (default: &quot;Kami menikah&quot;)
-          </div>
-          <input
-            type="text"
-            value={tagline}
-            onChange={(e) => setTagline(e.target.value)}
-            className="w-full border border-border rounded-[10px] px-3 py-2.5 text-[13.5px] text-text-primary bg-white outline-none focus:border-accent transition-colors"
-            placeholder="Kami menikah"
-          />
-        </div>
 
         <div className="bg-surface border border-border rounded-[14px] p-5 mb-5">
           <div className="text-[14.5px] font-semibold text-text-primary mb-0.5">

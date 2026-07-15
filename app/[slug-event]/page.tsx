@@ -7,8 +7,6 @@ import Image from "next/image";
 interface EventDetail {
   heroImage?: string | null;
   frameImage?: string | null;
-  coupleNames?: string | null;
-  tagline?: string | null;
   maxPhotos?: number;
 }
 
@@ -23,20 +21,6 @@ interface Event {
 
 type Screen = "landing" | "camera" | "result" | "done";
 
-function getInitials(names: string): string {
-  const parts = names.split(/[&+,]/).map((s) => s.trim());
-  if (parts.length >= 2) return `${parts[0][0]}&${parts[1][0]}`;
-  return parts[0]?.[0] ?? "?";
-}
-
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
 
 function removeGreenScreen(imageUrl: string): Promise<string> {
   return new Promise((resolve) => {
@@ -228,10 +212,7 @@ export default function GuestPage() {
     return () => stopCamera();
   }, [screen, startCamera, stopCamera]);
 
-  const coupleNames = event?.detail?.coupleNames ?? event?.name ?? "";
   const heroImage = event?.detail?.heroImage;
-  const tagline = event?.detail?.tagline || "Kami menikah";
-  const initials = getInitials(coupleNames);
 
   const navigateTo = useCallback((s: Screen) => {
     setFilter("Natural");
@@ -379,29 +360,10 @@ export default function GuestPage() {
                 />
               )}
               <div className="absolute inset-0 bg-linear-to-b from-[rgba(28,24,21,0.05)] to-[rgba(28,24,21,0.35)]" />
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <span className="text-[15vw] text-white/8 font-serif tracking-wide font-medium">
-                  {initials}
-                </span>
-              </div>
             </div>
 
             {/* Body */}
             <div className="px-6 py-5 flex-1 flex flex-col bg-[#1C1815] text-white">
-              <div className="mb-5">
-                <div className="text-[11px] tracking-[0.14em] uppercase text-[#D9CBAE] font-semibold mb-1.5">
-                  {tagline}
-                </div>
-                <div className="text-[30px] leading-[1.05] font-medium text-white font-serif">
-                  {coupleNames}
-                </div>
-                <div className="text-[13px] text-white/80 mt-1.5 tracking-wide">
-                  {formatDate(event.startDate)}
-                  {event.endDate !== event.startDate &&
-                    ` — ${formatDate(event.endDate)}`}
-                </div>
-              </div>
-
               {/* Quota */}
               <div className="flex items-center justify-between bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-3 mb-5">
                 <span className="text-[12.5px] text-white/90">
@@ -681,7 +643,7 @@ export default function GuestPage() {
               Foto tersimpan
             </div>
             <div className="text-[13px] text-text-muted leading-relaxed mb-7">
-              Terima kasih sudah berbagi momen ini bersama {coupleNames}.
+              Terima kasih sudah berbagi momen ini bersama {event.name}.
             </div>
             <div className="flex items-center gap-2 text-[11.5px] text-text-on-accent-muted bg-accent-hover px-3.5 py-2.5 rounded-[10px] mb-6 text-left">
               <i className="ti ti-clock shrink-0" />

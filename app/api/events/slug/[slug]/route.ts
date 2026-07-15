@@ -62,8 +62,6 @@ export async function PUT(request: Request, { params }: RouteContext) {
   const formData = await request.formData();
   const heroFile = formData.get("heroImage") as File | null;
   const frameFile = formData.get("frameImage") as File | null;
-  const coupleNames = formData.get("coupleNames") as string | null;
-  const tagline = formData.get("tagline") as string | null;
   const maxPhotosStr = formData.get("maxPhotos") as string | null;
 
   let heroUrl: string | null = event.detail?.heroImage ?? null;
@@ -81,8 +79,6 @@ export async function PUT(request: Request, { params }: RouteContext) {
   const detail = await upsertEventDetail(event.id, {
     heroImage: heroUrl,
     frameImage: frameUrl,
-    coupleNames: coupleNames ?? event.detail?.coupleNames ?? null,
-    tagline: tagline ?? event.detail?.tagline ?? null,
     maxPhotos,
   });
 
