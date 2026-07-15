@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -25,11 +25,14 @@ export default function GalleryPage() {
   const [guestPhotos, setGuestPhotos] = useState<GuestPhoto[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPhoto, setSelectedPhoto] = useState<{
+    id?: string;
     pictureUrl: string;
     guestName: string;
     notes: string | null;
     voiceUrl?: string | null;
   } | null>(null);
+
+  const [downloading, setDownloading] = useState(false);
 
   // Fetch Event
   useEffect(() => {
@@ -76,6 +79,30 @@ export default function GalleryPage() {
       cancelled = true;
     };
   }, [event]);
+
+  const handleDownload = useCallback(async (photoId: string, guestName: string) => {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      const res = await fetch(`/api/photos/${photoId}/download`);
+      if (!res.ok) throw new Error("Failed to download ZIP");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const safeName = guestName.replace(/[^a-zA-Z0-9]/g, "_") || "guest";
+      link.download = `greeting-${safeName}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert("Gagal mengunduh ZIP.");
+    } finally {
+      setDownloading(false);
+    }
+  }, [downloading]);
 
   if (loading) {
     return (
@@ -134,6 +161,7 @@ export default function GalleryPage() {
                   type="button"
                   onClick={() =>
                     setSelectedPhoto({
+                      id: gp.id,
                       pictureUrl: gp.pictureUrl,
                       guestName: gp.guestName,
                       notes: gp.notes,
@@ -201,13 +229,35 @@ export default function GalleryPage() {
                 </div>
               )}
             </div>
-            <button
-              type="button"
-              onClick={() => setSelectedPhoto(null)}
-              className="w-full border-t border-border py-3.5 text-[13.5px] font-medium text-text-primary active:bg-accent-hover transition-colors"
-            >
-              Tutup
-            </button>
+            <div className="flex border-t border-border">
+              <button
+                type="button"
+                onClick={() => setSelectedPhoto(null)}
+                className="flex-1 py-3.5 text-[13.5px] font-medium text-text-primary active:bg-accent-hover transition-colors border-r border-border"
+              >
+                Tutup
+              </button>
+              {selectedPhoto.id && (
+                <button
+                  type="button"
+                  disabled={downloading}
+                  onClick={() => handleDownload(selectedPhoto.id!, selectedPhoto.guestName)}
+                  className="flex-1 py-3.5 text-[13.5px] font-medium text-accent active:bg-accent-hover transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                >
+                  {downloading ? (
+                    <>
+                      <i className="ti ti-loader animate-spin" />
+                      Memproses...
+                    </>
+                  ) : (
+                    <>
+                      <i className="ti ti-download" />
+                      Unduh ZIP
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
