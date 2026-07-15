@@ -355,6 +355,18 @@ export default function GuestPage() {
         {/* ===== SCREEN: LANDING ===== */}
         {screen === "landing" && (
           <div className="flex flex-col min-h-dvh sm:min-h-dvh animate-[fadeIn_0.35s_ease]">
+            {/* Brand Banner */}
+            <div className="relative w-full h-16 bg-[#F8F8F8] shrink-0 border-b border-[#EBE5D9]">
+              <Image
+                src="/brand.jpeg"
+                alt="Kiranya Bahagia Virtual Photobooth"
+                fill
+                priority
+                unoptimized
+                className="object-contain py-3 px-4"
+              />
+            </div>
+
             {/* Hero */}
             <div className="relative w-full h-105 overflow-hidden bg-linear-to-br from-[#2A2420] via-dark to-[#100D0B] shrink-0">
               {heroImage && (
