@@ -118,7 +118,7 @@ export default function GuestPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
 
-  const timerRef = useRef<any>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(0);
 
   useEffect(() => {
@@ -193,7 +193,9 @@ export default function GuestPage() {
 
   // Fetch guest photos
   useEffect(() => {
-    fetchPhotos();
+    setTimeout(() => {
+      fetchPhotos();
+    }, 0);
   }, [fetchPhotos]);
 
   // Process frame image (chroma key green screen removal)
