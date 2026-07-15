@@ -3,6 +3,8 @@ import { getEventById, getGuestsByEventId } from "@/lib/events";
 import QRCode from "qrcode";
 import { ZipArchive } from "archiver";
 import { PassThrough } from "stream";
+import sharp from "sharp";
+import path from "path";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -38,14 +40,32 @@ export async function GET(_request: Request, { params }: RouteContext) {
     },
   });
 
+  const templatePath = path.join(process.cwd(), "public", "Kartu_QR.png");
+
   for (const guest of guests) {
     const url = `${baseUrl}/${event.slug}?guest=${guest.id}`;
-    const pngBuffer = await QRCode.toBuffer(url, {
+    const qrBuffer = await QRCode.toBuffer(url, {
       type: "png",
-      width: 400,
+      width: 330,
       margin: 2,
     });
-    archive.append(pngBuffer, { name: `${guest.id}.png` });
+
+    try {
+      const compositeBuffer = await sharp(templatePath)
+        .composite([
+          {
+            input: qrBuffer,
+            left: 658,
+            top: 217,
+          },
+        ])
+        .toBuffer();
+      archive.append(compositeBuffer, { name: `${guest.id}.png` });
+    } catch (err) {
+      console.error("Failed to generate composite QR image:", err);
+      // Fallback to raw QR code if composite fails
+      archive.append(qrBuffer, { name: `${guest.id}.png` });
+    }
   }
 
   archive.finalize();
