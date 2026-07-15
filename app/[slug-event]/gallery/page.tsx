@@ -192,48 +192,63 @@ export default function GalleryPage() {
       {/* Photo detail modal */}
       {selectedPhoto && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(28,24,21,0.7)] animate-[fadeIn_0.2s_ease]"
+          className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-[rgba(28,24,21,0.75)] backdrop-blur-sm animate-[fadeIn_0.2s_ease]"
           onClick={() => setSelectedPhoto(null)}
         >
           <div
-            className="w-full max-w-85 mx-4 bg-[#F7F3ED] rounded-3xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.4)] animate-[modalIn_0.25s_ease]"
+            className="w-full max-w-85 bg-[#F7F3ED] rounded-[28px] overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.45),0_0_0_1px_rgba(255,255,255,0.06)_inset] animate-[modalIn_0.3s_ease]"
             onClick={(e) => e.stopPropagation()}
           >
-            <Image
-              src={selectedPhoto.pictureUrl}
-              alt={selectedPhoto.guestName}
-              width={400}
-              height={533}
-              className="w-full aspect-3/4 object-cover"
-            />
-            <div className="px-5 py-4">
-              <div className="text-[14px] font-medium text-text-primary">
+            {/* Photo */}
+            <div className="relative">
+              <Image
+                src={selectedPhoto.pictureUrl}
+                alt={selectedPhoto.guestName}
+                width={400}
+                height={533}
+                className="w-full aspect-3/4 object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => setSelectedPhoto(null)}
+                className="absolute top-3.5 right-3.5 w-9 h-9 rounded-full bg-black/45 backdrop-blur-md flex items-center justify-center text-[rgba(255,255,255,0.9)] hover:bg-black/60 active:scale-90 transition-all cursor-pointer border border-white/10 text-[18px] font-light leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Details */}
+            <div className="px-6 pt-5 pb-5">
+              <div className="text-[15px] font-semibold text-text-primary tracking-[-0.01em]">
                 {selectedPhoto.guestName}
               </div>
               {selectedPhoto.notes && (
-                <div className="text-[13px] text-text-muted mt-1 leading-relaxed">
+                <div className="text-[13px] text-text-muted mt-1.5 leading-[1.65]">
                   {selectedPhoto.notes}
                 </div>
               )}
               {selectedPhoto.voiceUrl && (
-                <div className="mt-3.5 pt-3 border-t border-border/40">
-                  <div className="text-[11px] tracking-[0.14em] uppercase text-text-muted font-medium mb-1.5">
+                <div className="mt-4 p-3.5 bg-[rgba(0,0,0,0.035)] rounded-2xl">
+                  <div className="text-[10px] tracking-[0.16em] uppercase text-text-muted font-semibold mb-2 flex items-center gap-1.5">
+                    <i className="ti ti-microphone text-[11px]" />
                     Pesan Suara
                   </div>
                   <audio
                     src={selectedPhoto.voiceUrl}
                     controls
                     controlsList="nodownload"
-                    className="w-full h-9 rounded-lg"
+                    className="w-full h-9 rounded-xl"
                   />
                 </div>
               )}
             </div>
-            <div className="flex border-t border-border">
+
+            {/* Actions */}
+            <div className="flex border-t border-border/60">
               <button
                 type="button"
                 onClick={() => setSelectedPhoto(null)}
-                className="flex-1 py-3.5 text-[13.5px] font-medium text-text-primary active:bg-accent-hover transition-colors border-r border-border"
+                className="flex-1 py-4 text-[13.5px] font-medium text-text-primary active:bg-accent-hover transition-colors cursor-pointer"
               >
                 Tutup
               </button>
@@ -242,7 +257,7 @@ export default function GalleryPage() {
                   type="button"
                   disabled={downloading}
                   onClick={() => handleDownload(selectedPhoto.id!, selectedPhoto.guestName)}
-                  className="flex-1 py-3.5 text-[13.5px] font-medium text-accent active:bg-accent-hover transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                  className="flex-1 py-4 text-[13.5px] font-semibold text-accent active:bg-accent-hover transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer border-l border-border/60"
                 >
                   {downloading ? (
                     <>
@@ -251,7 +266,7 @@ export default function GalleryPage() {
                     </>
                   ) : (
                     <>
-                      <i className="ti ti-download" />
+                      <i className="ti ti-download text-[14px]" />
                       Unduh ZIP
                     </>
                   )}
@@ -265,12 +280,12 @@ export default function GalleryPage() {
       {/* Styles for animations */}
       <style>{`
         @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(6px); }
-          to { opacity: 1; transform: translateY(0); }
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
         @keyframes modalIn {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
+          from { opacity: 0; transform: scale(0.94) translateY(8px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
         }
       `}</style>
     </div>
