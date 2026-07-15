@@ -250,10 +250,27 @@ export default function GuestPage() {
         const photoImg = await loadImage(capturedPhoto);
         const frameImg = await loadImage(processedFrame);
         const canvas = document.createElement("canvas");
-        canvas.width = photoImg.naturalWidth;
-        canvas.height = photoImg.naturalHeight;
+        canvas.width = frameImg.naturalWidth;
+        canvas.height = frameImg.naturalHeight;
         const ctx = canvas.getContext("2d")!;
-        ctx.drawImage(photoImg, 0, 0);
+
+        // Draw guest photo covering the frame area (object-cover)
+        const sAspect = photoImg.naturalWidth / photoImg.naturalHeight;
+        const dAspect = canvas.width / canvas.height;
+        let sWidth = photoImg.naturalWidth;
+        let sHeight = photoImg.naturalHeight;
+        let sx = 0;
+        let sy = 0;
+
+        if (sAspect > dAspect) {
+          sWidth = sHeight * dAspect;
+          sx = (photoImg.naturalWidth - sWidth) / 2;
+        } else {
+          sHeight = sWidth / dAspect;
+          sy = (photoImg.naturalHeight - sHeight) / 2;
+        }
+
+        ctx.drawImage(photoImg, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
         ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
         blob = await new Promise<Blob>((resolve) =>
           canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.92),
