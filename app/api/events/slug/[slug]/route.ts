@@ -16,11 +16,28 @@ export async function GET(_request: Request, { params }: RouteContext) {
 async function uploadFile(
   file: File,
   eventId: string,
-  field: string
+  field: string,
+  oldUrl?: string | null
 ): Promise<string | null> {
   if (!file || file.size === 0) return null;
   const ext = file.name.split(".").pop() || "png";
-  const path = `${eventId}/${field}.${ext}`;
+  const path = `${eventId}/${field}-${Date.now()}.${ext}`;
+
+  // If there's an old file with a different path/extension, delete it first
+  if (oldUrl) {
+    const searchStr = `/public/${BUCKET}/`;
+    const idx = oldUrl.indexOf(searchStr);
+    if (idx !== -1) {
+      const oldPath = decodeURIComponent(oldUrl.substring(idx + searchStr.length));
+      if (oldPath !== path) {
+        try {
+          await storage.from(BUCKET).remove([oldPath]);
+        } catch (err) {
+          console.error("Failed to delete old file:", err);
+        }
+      }
+    }
+  }
 
   const { error } = await storage.from(BUCKET).upload(path, file, {
     upsert: true,
@@ -53,10 +70,10 @@ export async function PUT(request: Request, { params }: RouteContext) {
   let frameUrl: string | null = event.detail?.frameImage ?? null;
 
   if (heroFile && heroFile.size > 0) {
-    heroUrl = await uploadFile(heroFile, event.id, "hero");
+    heroUrl = await uploadFile(heroFile, event.id, "hero", event.detail?.heroImage);
   }
   if (frameFile && frameFile.size > 0) {
-    frameUrl = await uploadFile(frameFile, event.id, "frame");
+    frameUrl = await uploadFile(frameFile, event.id, "frame", event.detail?.frameImage);
   }
 
   const maxPhotos = maxPhotosStr ? parseInt(maxPhotosStr, 10) : event.detail?.maxPhotos ?? 2;
