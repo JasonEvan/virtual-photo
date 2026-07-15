@@ -140,12 +140,18 @@ export async function createGuestPhoto(data: {
 
 export async function getGuestPhotosByEventId(
   eventId: string,
+  limitVal?: number,
 ): Promise<GuestPhoto[]> {
-  return db
+  const query = db
     .select()
     .from(guestPhotos)
     .where(eq(guestPhotos.eventId, eventId))
     .orderBy(desc(guestPhotos.createdAt));
+
+  if (limitVal !== undefined) {
+    return query.limit(limitVal);
+  }
+  return query;
 }
 
 export async function createGuests(

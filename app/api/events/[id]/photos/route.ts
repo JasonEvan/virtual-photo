@@ -9,14 +9,18 @@ import { storage, BUCKET } from "@/lib/supabase";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-export async function GET(_request: Request, { params }: RouteContext) {
+export async function GET(request: Request, { params }: RouteContext) {
   const { id } = await params;
   const event = await getEventById(id);
   if (!event) {
     return NextResponse.json({ error: "Event not found" }, { status: 404 });
   }
 
-  const rows = await getGuestPhotosByEventId(event.id);
+  const { searchParams } = new URL(request.url);
+  const limitParam = searchParams.get("limit");
+  const limitVal = limitParam ? parseInt(limitParam, 10) : undefined;
+
+  const rows = await getGuestPhotosByEventId(event.id, limitVal);
   const photos = rows.map((row) => {
     const { data: picData } = storage
       .from(BUCKET)

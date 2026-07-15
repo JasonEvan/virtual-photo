@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 
 interface EventDetail {
   heroImage?: string | null;
@@ -182,7 +183,7 @@ export default function GuestPage() {
   const fetchPhotos = useCallback(async () => {
     if (!event) return;
     try {
-      const res = await fetch(`/api/events/${event.id}/photos`);
+      const res = await fetch(`/api/events/${event.id}/photos?limit=9`);
       if (!res.ok) return;
       const data = await res.json();
       setGuestPhotos(data);
@@ -603,6 +604,15 @@ export default function GuestPage() {
                       </button>
                     ))}
                   </div>
+                  {guestPhotos.length >= 9 && (
+                    <Link
+                      href={`/${event.slug}/gallery`}
+                      className="w-full border border-border-subtle rounded-xl py-3.5 text-[13px] font-medium text-text-primary flex items-center justify-center gap-2 mt-4 hover:bg-accent-hover transition-colors text-center"
+                    >
+                      <i className="ti ti-layout-grid text-accent" />
+                      Lihat Semua Foto
+                    </Link>
+                  )}
                 </div>
               )}
             </div>
