@@ -82,6 +82,7 @@ export default function GuestPage() {
   const [filter, setFilter] = useState<"Natural" | "Black & White">("Natural");
   const [processedFrame, setProcessedFrame] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
+  const [guestName, setGuestName] = useState("");
   const [saving, setSaving] = useState(false);
   const [guestPhotos, setGuestPhotos] = useState<
     {
@@ -265,7 +266,7 @@ export default function GuestPage() {
 
       const formData = new FormData();
       formData.append("photo", file);
-      formData.append("guestName", "John Doe");
+      formData.append("guestName", guestName.trim() || "John Doe");
       formData.append("notes", notes);
       if (guestId) formData.append("guestId", guestId);
 
@@ -584,12 +585,23 @@ export default function GuestPage() {
                 ))}
               </div>
 
+              {/* Nama Pengirim */}
+              <input
+                type="text"
+                placeholder="Nama Pengirim (wajib)"
+                value={guestName}
+                onChange={(e) => setGuestName(e.target.value)}
+                required
+                className="w-full border border-border rounded-xl px-3.5 py-3 text-[13.5px] font-inherit bg-surface text-text-primary placeholder:text-[#A79B87] mb-3"
+              />
+
               {/* Notes */}
               <textarea
                 rows={2}
-                placeholder="Tulis ucapan untuk pengantin..."
+                placeholder="Tulis ucapan kamu (wajib)"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
+                required
                 className="w-full border border-border rounded-xl px-3.5 py-3 text-[13.5px] font-inherit resize-none bg-surface text-text-primary placeholder:text-[#A79B87] mb-3"
               />
 
@@ -617,7 +629,7 @@ export default function GuestPage() {
               <button
                 type="button"
                 onClick={savePhoto}
-                disabled={saving}
+                disabled={saving || !guestName.trim() || !notes.trim()}
                 className="w-full bg-dark text-dark-text rounded-xl py-4 text-[15px] font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50"
               >
                 <i className="ti ti-check" />
@@ -657,6 +669,7 @@ export default function GuestPage() {
                 setCapturedPhoto(null);
                 setPhotosUsed(0);
                 setNotes("");
+                setGuestName("");
                 navigateTo("landing");
               }}
               className="w-full bg-dark text-dark-text rounded-xl py-4 text-[15px] font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
