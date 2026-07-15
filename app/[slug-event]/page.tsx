@@ -354,7 +354,7 @@ export default function GuestPage() {
 
         {/* ===== SCREEN: LANDING ===== */}
         {screen === "landing" && (
-          <div className="flex flex-col min-h-dvh sm:min-h-dvh animate-[fadeIn_0.35s_ease]">
+          <div className="flex flex-col flex-1 min-h-dvh sm:min-h-dvh animate-[fadeIn_0.35s_ease]">
             {/* Brand Banner */}
             <div className="relative w-full h-16 bg-[#F8F8F8] shrink-0 border-b border-[#EBE5D9]">
               <Image
@@ -367,18 +367,18 @@ export default function GuestPage() {
               />
             </div>
 
-            {/* Hero */}
-            <div className="relative w-full h-105 overflow-hidden bg-linear-to-br from-[#2A2420] via-dark to-[#100D0B] shrink-0">
+            {/* Hero (9:16 Aspect Ratio) */}
+            <div className="relative w-full aspect-9/16 overflow-hidden bg-linear-to-br from-[#2A2420] via-dark to-[#100D0B] shrink-0">
               {heroImage && (
                 <Image
                   src={heroImage}
                   alt=""
                   fill
                   priority
-                  className="object-cover"
+                  className="object-contain"
                 />
               )}
-              <div className="absolute inset-0 bg-linear-to-b from-[rgba(28,24,21,0.15)] via-[rgba(28,24,21,0.15)] to-[rgba(28,24,21,0.92)]" />
+              <div className="absolute inset-0 bg-linear-to-b from-[rgba(28,24,21,0.05)] to-[rgba(28,24,21,0.35)]" />
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <span className="text-[15vw] text-white/8 font-serif tracking-wide font-medium">
                   {initials}
@@ -387,15 +387,15 @@ export default function GuestPage() {
             </div>
 
             {/* Body */}
-            <div className="px-6 py-5 flex-1 flex flex-col">
+            <div className="px-6 py-5 flex-1 flex flex-col bg-[#1C1815] text-white">
               <div className="mb-5">
-                <div className="text-[11px] tracking-[0.14em] uppercase text-accent font-medium mb-1.5">
+                <div className="text-[11px] tracking-[0.14em] uppercase text-[#D9CBAE] font-semibold mb-1.5">
                   {tagline}
                 </div>
-                <div className="text-[30px] leading-[1.05] font-medium text-text-primary font-serif">
+                <div className="text-[30px] leading-[1.05] font-medium text-white font-serif">
                   {coupleNames}
                 </div>
-                <div className="text-[13px] text-text-muted mt-1.5 tracking-wide">
+                <div className="text-[13px] text-white/80 mt-1.5 tracking-wide">
                   {formatDate(event.startDate)}
                   {event.endDate !== event.startDate &&
                     ` — ${formatDate(event.endDate)}`}
@@ -403,11 +403,11 @@ export default function GuestPage() {
               </div>
 
               {/* Quota */}
-              <div className="flex items-center justify-between bg-accent-hover border border-[#DCD3BF] rounded-xl px-4 py-3 mb-5">
-                <span className="text-[12.5px] text-[#5A5347]">
+              <div className="flex items-center justify-between bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-3 mb-5">
+                <span className="text-[12.5px] text-white/90">
                   Sisa kesempatan foto kamu
                 </span>
-                <span className="text-[12.5px] font-medium text-[#5A5347]">
+                <span className="text-[12.5px] font-semibold text-white">
                   {chancesLeft !== null ? chancesLeft - photosUsed : 0}
                 </span>
               </div>
@@ -417,7 +417,7 @@ export default function GuestPage() {
                 type="button"
                 onClick={() => navigateTo("camera")}
                 disabled={chancesLeft === null || photosUsed >= chancesLeft}
-                className="w-full bg-dark text-dark-text rounded-xl py-4 text-[15px] font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:bg-[#C9C2B4] disabled:cursor-not-allowed"
+                className="w-full bg-white text-black rounded-xl py-4 text-[15px] font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:bg-white/40 disabled:text-black/60 disabled:cursor-not-allowed shadow-lg"
               >
                 <i className="ti ti-camera" />
                 Mulai ambil foto
@@ -425,8 +425,8 @@ export default function GuestPage() {
 
               {/* Guest photos gallery */}
               {guestPhotos.length > 0 && (
-                <div className="mt-6 pt-5 border-t border-[#DCD3BF]">
-                  <div className="text-[11px] tracking-[0.14em] uppercase text-accent font-medium mb-3">
+                <div className="mt-6 pt-5 border-t border-white/20">
+                  <div className="text-[11px] tracking-[0.14em] uppercase text-white/70 font-medium mb-3">
                     Galeri foto tamu
                   </div>
                   <div className="grid grid-cols-3 gap-2">
@@ -441,7 +441,7 @@ export default function GuestPage() {
                             notes: gp.notes,
                           })
                         }
-                        className="rounded-lg overflow-hidden border border-border bg-surface cursor-pointer active:scale-[0.97] transition-transform text-left"
+                        className="rounded-lg overflow-hidden border border-white/10 bg-black/40 cursor-pointer active:scale-[0.97] transition-transform text-left"
                       >
                         <Image
                           src={gp.pictureUrl}
@@ -451,7 +451,7 @@ export default function GuestPage() {
                           className="w-full aspect-square object-cover"
                         />
                         {gp.notes && (
-                          <div className="px-1.5 py-1.5 text-[10px] text-text-muted leading-tight line-clamp-2">
+                          <div className="px-1.5 py-1.5 text-[10px] text-white/70 leading-tight line-clamp-2">
                             {gp.notes}
                           </div>
                         )}
@@ -466,7 +466,7 @@ export default function GuestPage() {
 
         {/* ===== SCREEN: CAMERA ===== */}
         {screen === "camera" && (
-          <div className="flex flex-col min-h-dvh sm:min-h-dvh animate-[fadeIn_0.35s_ease]">
+          <div className="flex flex-col flex-1 h-full animate-[fadeIn_0.35s_ease]">
             {/* Topbar */}
             <div className="flex items-center gap-3 px-5 pt-4.5 pb-3.5 border-b border-border shrink-0">
               <button
@@ -522,7 +522,7 @@ export default function GuestPage() {
 
         {/* ===== SCREEN: RESULT ===== */}
         {screen === "result" && (
-          <div className="flex flex-col min-h-dvh sm:min-h-dvh animate-[fadeIn_0.35s_ease]">
+          <div className="flex flex-col flex-1 h-full animate-[fadeIn_0.35s_ease]">
             {/* Topbar */}
             <div className="flex items-center gap-3 px-5 pt-4.5 pb-3.5 border-b border-border shrink-0">
               <button
@@ -543,7 +543,7 @@ export default function GuestPage() {
             </div>
 
             {/* Result content */}
-            <div className="flex-1 px-6 py-6 flex flex-col">
+            <div className="flex-1 px-6 py-4 flex flex-col overflow-y-auto min-h-0">
               {/* Polaroid */}
               {processedFrame && capturedPhoto ? (
                 <>
@@ -673,7 +673,7 @@ export default function GuestPage() {
 
         {/* ===== SCREEN: DONE ===== */}
         {screen === "done" && (
-          <div className="flex flex-col items-center justify-center flex-1 px-8 py-8 text-center min-h-dvh sm:min-h-dvh animate-[fadeIn_0.35s_ease]">
+          <div className="flex flex-col items-center justify-center flex-1 px-8 py-8 text-center h-full animate-[fadeIn_0.35s_ease] overflow-y-auto min-h-0">
             <div className="w-15.5 h-15.5 rounded-full bg-success/20 text-success flex items-center justify-center text-[26px] mb-4.5">
               <i className="ti ti-heart" />
             </div>
