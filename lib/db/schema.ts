@@ -39,6 +39,7 @@ export const guestPhotos = pgTable("guest_photos", {
   picturePath: text("picture_path").notNull(),
   guestName: text("guest_name").notNull().default("John Doe"),
   notes: text("notes"),
+  voicePath: text("voice_path"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

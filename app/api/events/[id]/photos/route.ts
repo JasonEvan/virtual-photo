@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { getEventById, createGuestPhoto, getGuestPhotosByEventId, decrementGuestChances } from "@/lib/events";
+import {
+  getEventById,
+  createGuestPhoto,
+  getGuestPhotosByEventId,
+  decrementGuestChances,
+} from "@/lib/events";
 import { storage, BUCKET } from "@/lib/supabase";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -13,8 +18,21 @@ export async function GET(_request: Request, { params }: RouteContext) {
 
   const rows = await getGuestPhotosByEventId(event.id);
   const photos = rows.map((row) => {
-    const { data } = storage.from(BUCKET).getPublicUrl(row.picturePath);
-    return { ...row, pictureUrl: data.publicUrl };
+    const { data: picData } = storage
+      .from(BUCKET)
+      .getPublicUrl(row.picturePath);
+    let voiceUrl: string | null = null;
+    if (row.voicePath) {
+      if (row.voicePath.startsWith("data:")) {
+        voiceUrl = row.voicePath;
+      } else {
+        const { data: voiceData } = storage
+          .from(BUCKET)
+          .getPublicUrl(row.voicePath);
+        voiceUrl = voiceData.publicUrl;
+      }
+    }
+    return { ...row, pictureUrl: picData.publicUrl, voiceUrl };
   });
 
   return NextResponse.json(photos);
@@ -32,6 +50,7 @@ export async function POST(request: Request, { params }: RouteContext) {
   const guestName = (formData.get("guestName") as string) || "John Doe";
   const notes = formData.get("notes") as string | null;
   const guestId = formData.get("guestId") as string | null;
+  const voiceBase64 = formData.get("voiceBase64") as string | null;
 
   if (!photo || photo.size === 0) {
     return NextResponse.json({ error: "Photo is required" }, { status: 400 });
@@ -39,9 +58,9 @@ export async function POST(request: Request, { params }: RouteContext) {
 
   const ext = photo.name.split(".").pop() || "jpg";
   const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const path = `${id}/guests/${filename}`;
+  const pathName = `${id}/guests/${filename}`;
 
-  const { error } = await storage.from(BUCKET).upload(path, photo, {
+  const { error } = await storage.from(BUCKET).upload(pathName, photo, {
     contentType: photo.type,
   });
   if (error) {
@@ -51,9 +70,10 @@ export async function POST(request: Request, { params }: RouteContext) {
 
   const row = await createGuestPhoto({
     eventId: event.id,
-    picturePath: path,
+    picturePath: pathName,
     guestName,
     notes,
+    voicePath: voiceBase64, // Save Base64 string directly in database
   });
 
   if (guestId) {

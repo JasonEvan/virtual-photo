@@ -1,0 +1,1 @@
+ALTER TABLE "guest_photos" ADD COLUMN "voice_path" text;

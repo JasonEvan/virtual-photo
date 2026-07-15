@@ -90,13 +90,30 @@ export default function GuestPage() {
       pictureUrl: string;
       guestName: string;
       notes: string | null;
+      voiceUrl?: string | null;
     }[]
   >([]);
   const [selectedPhoto, setSelectedPhoto] = useState<{
     pictureUrl: string;
     guestName: string;
     notes: string | null;
+    voiceUrl?: string | null;
   } | null>(null);
+
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [voiceBase64, setVoiceBase64] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+
+  const timerRef = useRef<any>(null);
+  const startTimeRef = useRef<number>(0);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -150,20 +167,22 @@ export default function GuestPage() {
     };
   }, [guestId, event]);
 
-  // Fetch guest photos
-  useEffect(() => {
+  const fetchPhotos = useCallback(async () => {
     if (!event) return;
-    let cancelled = false;
-    (async () => {
+    try {
       const res = await fetch(`/api/events/${event.id}/photos`);
       if (!res.ok) return;
       const data = await res.json();
-      if (!cancelled) setGuestPhotos(data);
-    })();
-    return () => {
-      cancelled = true;
-    };
+      setGuestPhotos(data);
+    } catch (err) {
+      console.error("Failed to fetch photos:", err);
+    }
   }, [event]);
+
+  // Fetch guest photos
+  useEffect(() => {
+    fetchPhotos();
+  }, [fetchPhotos]);
 
   // Process frame image (chroma key green screen removal)
   useEffect(() => {
@@ -240,6 +259,66 @@ export default function GuestPage() {
     setPhotosUsed((p) => p + 1);
     navigateTo("result");
   }, [photosUsed, chancesLeft, navigateTo]);
+
+  const startRecording = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        const duration = (Date.now() - startTimeRef.current) / 1000;
+        stream.getTracks().forEach((track) => track.stop());
+
+        const finalDuration = Math.min(Math.round(duration), 30);
+        const mimeType = recorder.mimeType || "audio/webm";
+        const blob = new Blob(chunks, { type: mimeType });
+        setAudioBlob(blob);
+        setRecordingDuration(finalDuration);
+        setIsRecording(false);
+
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setVoiceBase64(reader.result as string);
+        };
+        reader.readAsDataURL(blob);
+      };
+
+      setMediaRecorder(recorder);
+      startTimeRef.current = Date.now();
+      recorder.start();
+      setIsRecording(true);
+      setRecordingDuration(0);
+
+      timerRef.current = setInterval(() => {
+        const elapsed = Math.round((Date.now() - startTimeRef.current) / 1000);
+        if (elapsed >= 30) {
+          if (recorder.state === "recording") {
+            recorder.stop();
+          }
+          if (timerRef.current) clearInterval(timerRef.current);
+        } else {
+          setRecordingDuration(elapsed);
+        }
+      }, 500);
+    } catch (err) {
+      console.error("Failed to start recording:", err);
+      alert("Gagal mengakses mikrofon.");
+    }
+  }, []);
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorder && mediaRecorder.state === "recording") {
+      mediaRecorder.stop();
+    }
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+  }, [mediaRecorder]);
 
   const downloadPhoto = useCallback(async () => {
     if (!capturedPhoto || !event) return;
@@ -331,6 +410,9 @@ export default function GuestPage() {
       formData.append("guestName", guestName.trim() || "John Doe");
       formData.append("notes", notes);
       if (guestId) formData.append("guestId", guestId);
+      if (voiceBase64) {
+        formData.append("voiceBase64", voiceBase64);
+      }
 
       const saveRes = await fetch(`/api/events/${event.id}/photos`, {
         method: "POST",
@@ -338,6 +420,7 @@ export default function GuestPage() {
       });
       if (saveRes.ok) {
         setChancesLeft((c) => (c !== null ? c - 1 : c));
+        await fetchPhotos();
         navigateTo("done");
       }
     } finally {
@@ -348,9 +431,13 @@ export default function GuestPage() {
     event,
     saving,
     notes,
-    navigateTo,
-    processedFrame,
+    guestName,
+    audioBlob,
+    voiceBase64,
     guestId,
+    processedFrame,
+    navigateTo,
+    fetchPhotos,
   ]);
 
   if (loading) {
@@ -465,6 +552,7 @@ export default function GuestPage() {
                             pictureUrl: gp.pictureUrl,
                             guestName: gp.guestName,
                             notes: gp.notes,
+                            voiceUrl: gp.voiceUrl,
                           })
                         }
                         className="rounded-lg overflow-hidden border border-border bg-surface cursor-pointer active:scale-[0.97] transition-transform text-left"
@@ -671,20 +759,32 @@ export default function GuestPage() {
               <div className="flex items-center gap-3 border border-border rounded-xl px-3.5 py-3 bg-surface mb-3">
                 <button
                   type="button"
-                  className="w-9.5 h-9.5 rounded-full bg-[#2A2420] text-dark-text flex items-center justify-center border-none cursor-pointer shrink-0"
+                  onClick={isRecording ? stopRecording : (audioBlob ? () => { setAudioBlob(null); setVoiceBase64(null); } : startRecording)}
+                  className={`w-9.5 h-9.5 rounded-full flex items-center justify-center border-none cursor-pointer shrink-0 ${
+                    isRecording
+                      ? "bg-red-500 animate-pulse text-white"
+                      : audioBlob
+                      ? "bg-red-600 text-white"
+                      : "bg-[#2A2420] text-dark-text"
+                  }`}
                 >
-                  <i className="ti ti-microphone" />
+                  <i className={`ti ${isRecording ? "ti-player-stop" : audioBlob ? "ti-trash" : "ti-microphone"}`} />
                 </button>
                 <div className="flex items-center gap-0.5 flex-1 h-5">
-                  {[6, 12, 8, 16, 10, 14, 7, 11, 9, 15, 6, 10].map((h, i) => (
-                    <div
-                      key={i}
-                      className="w-[2.5px] bg-border-subtle rounded-full"
-                      style={{ height: `${h}px` }}
-                    />
-                  ))}
+                  {isRecording ? (
+                    <div className="flex items-center gap-1.5 flex-1">
+                      <span className="text-[12.5px] text-red-500 animate-pulse font-medium">Merekam...</span>
+                      <span className="text-[11.5px] text-text-muted ml-auto font-mono">{recordingDuration}s / 30s</span>
+                    </div>
+                  ) : audioBlob ? (
+                    <div className="flex items-center gap-1.5 flex-1">
+                      <span className="text-[12.5px] text-green-600 font-medium">Pesan suara direkam</span>
+                      <span className="text-[11.5px] text-text-muted ml-auto font-mono">{recordingDuration}s</span>
+                    </div>
+                  ) : (
+                    <span className="text-[12.5px] text-text-muted">Ketuk ikon untuk rekam pesan suara</span>
+                  )}
                 </div>
-                <span className="text-[12px] text-text-muted">Rekam VN</span>
               </div>
 
               {/* Actions */}
@@ -733,6 +833,8 @@ export default function GuestPage() {
                 setPhotosUsed(0);
                 setNotes("");
                 setGuestName("");
+                setAudioBlob(null);
+                setRecordingDuration(0);
                 navigateTo("landing");
               }}
               className="w-full bg-dark text-dark-text rounded-xl py-4 text-[15px] font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
@@ -768,6 +870,19 @@ export default function GuestPage() {
               {selectedPhoto.notes && (
                 <div className="text-[13px] text-text-muted mt-1 leading-relaxed">
                   {selectedPhoto.notes}
+                </div>
+              )}
+              {selectedPhoto.voiceUrl && (
+                <div className="mt-3.5 pt-3 border-t border-border/40">
+                  <div className="text-[11px] tracking-[0.14em] uppercase text-text-muted font-medium mb-1.5">
+                    Pesan Suara
+                  </div>
+                  <audio
+                    src={selectedPhoto.voiceUrl}
+                    controls
+                    controlsList="nodownload"
+                    className="w-full h-9 rounded-lg"
+                  />
                 </div>
               )}
             </div>

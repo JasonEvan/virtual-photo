@@ -113,6 +113,7 @@ export async function createGuestPhoto(data: {
   picturePath: string;
   guestName: string;
   notes?: string | null;
+  voicePath?: string | null;
 }): Promise<GuestPhoto> {
   const [row] = await db
     .insert(guestPhotos)
@@ -121,6 +122,7 @@ export async function createGuestPhoto(data: {
       picturePath: data.picturePath,
       guestName: data.guestName,
       notes: data.notes ?? null,
+      voicePath: data.voicePath ?? null,
     })
     .returning();
   return row;
