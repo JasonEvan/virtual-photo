@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useSearchParams } from "next/navigation";
+import Image from "next/image";
 
 interface EventDetail {
   heroImage?: string | null;
@@ -38,8 +39,8 @@ function formatDate(dateStr: string): string {
 }
 
 function removeGreenScreen(imageUrl: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
+  return new Promise((resolve) => {
+    const img = new window.Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
       const canvas = document.createElement("canvas");
@@ -71,7 +72,7 @@ function removeGreenScreen(imageUrl: string): Promise<string> {
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
-    const img = new Image();
+    const img = new window.Image();
     img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
     img.onerror = reject;
@@ -99,11 +100,18 @@ export default function GuestPage() {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [guestPhotos, setGuestPhotos] = useState<
-    { id: string; pictureUrl: string; guestName: string; notes: string | null }[]
+    {
+      id: string;
+      pictureUrl: string;
+      guestName: string;
+      notes: string | null;
+    }[]
   >([]);
-  const [selectedPhoto, setSelectedPhoto] = useState<
-    { pictureUrl: string; guestName: string; notes: string | null } | null
-  >(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<{
+    pictureUrl: string;
+    guestName: string;
+    notes: string | null;
+  } | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -132,13 +140,15 @@ export default function GuestPage() {
   // Validate guest query param
   useEffect(() => {
     if (!guestId || !event) {
-      if (event) setGuestValid(false);
+      if (event) {
+        setTimeout(() => setGuestValid(false), 0);
+      }
       return;
     }
     let cancelled = false;
     (async () => {
       const res = await fetch(
-        `/api/events/${event.id}/guests/validate?guestId=${guestId}`
+        `/api/events/${event.id}/guests/validate?guestId=${guestId}`,
       );
       if (!res.ok) {
         if (!cancelled) setGuestValid(false);
@@ -165,14 +175,16 @@ export default function GuestPage() {
       const data = await res.json();
       if (!cancelled) setGuestPhotos(data);
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [event]);
 
   // Process frame image (chroma key green screen removal)
   useEffect(() => {
     const frameUrl = event?.detail?.frameImage;
     if (!frameUrl) {
-      setProcessedFrame(null);
+      setTimeout(() => setProcessedFrame(null), 0);
       return;
     }
     let cancelled = false;
@@ -262,7 +274,7 @@ export default function GuestPage() {
         ctx.drawImage(photoImg, 0, 0);
         ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
         blob = await new Promise<Blob>((resolve) =>
-          canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.92)
+          canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.92),
         );
       } else {
         const res = await fetch(capturedPhoto);
@@ -281,13 +293,21 @@ export default function GuestPage() {
         body: formData,
       });
       if (saveRes.ok) {
-        setChancesLeft((c) => c !== null ? c - 1 : c);
+        setChancesLeft((c) => (c !== null ? c - 1 : c));
         navigateTo("done");
       }
     } finally {
       setSaving(false);
     }
-  }, [capturedPhoto, event, saving, notes, navigateTo, processedFrame, guestId]);
+  }, [
+    capturedPhoto,
+    event,
+    saving,
+    notes,
+    navigateTo,
+    processedFrame,
+    guestId,
+  ]);
 
   if (loading) {
     return (
@@ -308,8 +328,8 @@ export default function GuestPage() {
   if (!guestId || guestValid === false) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-6">
-        <div className="text-center max-w-[300px]">
-          <div className="w-[72px] h-[72px] mx-auto mb-5 rounded-full bg-accent-hover flex items-center justify-center">
+        <div className="text-center max-w-75">
+          <div className="w-18 h-18 mx-auto mb-5 rounded-full bg-accent-hover flex items-center justify-center">
             <i className="ti ti-qrcode text-[32px] text-accent" />
           </div>
           <div className="text-[17px] font-medium text-text-primary mb-2">
@@ -327,32 +347,28 @@ export default function GuestPage() {
   return (
     <div className="min-h-screen bg-background flex justify-center px-3 py-8 sm:py-12">
       {/* Phone frame */}
-      <div className="w-full max-w-[375px] bg-[#F7F3ED] sm:rounded-[36px] sm:shadow-[0_20px_60px_rgba(28,24,21,0.25),0_0_0_8px_#1C1815] overflow-hidden flex flex-col min-h-[720px] sm:min-h-[720px] min-h-dvh sm:min-h-[720px] relative">
+      <div className="w-full max-w-93.75 bg-[#F7F3ED] sm:rounded-[36px] sm:shadow-[0_20px_60px_rgba(28,24,21,0.25),0_0_0_8px_#1C1815] overflow-hidden flex flex-col min-h-dvh sm:min-h-dvh relative">
         {/* Hidden canvas + video for camera */}
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="hidden"
-        />
+        <video ref={videoRef} autoPlay playsInline muted className="hidden" />
         <canvas ref={canvasRef} className="hidden" />
 
         {/* ===== SCREEN: LANDING ===== */}
         {screen === "landing" && (
-          <div className="flex flex-col min-h-[720px] min-h-dvh sm:min-h-[720px] animate-[fadeIn_0.35s_ease]">
+          <div className="flex flex-col min-h-dvh sm:min-h-dvh animate-[fadeIn_0.35s_ease]">
             {/* Hero */}
-            <div className="relative w-full h-[420px] overflow-hidden bg-gradient-to-br from-[#2A2420] via-dark to-[#100D0B] shrink-0">
+            <div className="relative w-full h-105 overflow-hidden bg-linear-to-br from-[#2A2420] via-dark to-[#100D0B] shrink-0">
               {heroImage && (
-                <img
+                <Image
                   src={heroImage}
                   alt=""
-                  className="absolute inset-0 w-full h-full object-cover"
+                  fill
+                  priority
+                  className="object-cover"
                 />
               )}
-              <div className="absolute inset-0 bg-gradient-to-b from-[rgba(28,24,21,0.15)] via-[rgba(28,24,21,0.15)] to-[rgba(28,24,21,0.92)]" />
+              <div className="absolute inset-0 bg-linear-to-b from-[rgba(28,24,21,0.15)] via-[rgba(28,24,21,0.15)] to-[rgba(28,24,21,0.92)]" />
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <span className="text-[15vw] text-white/[0.08] font-serif tracking-wide font-medium">
+                <span className="text-[15vw] text-white/8 font-serif tracking-wide font-medium">
                   {initials}
                 </span>
               </div>
@@ -415,9 +431,11 @@ export default function GuestPage() {
                         }
                         className="rounded-lg overflow-hidden border border-border bg-surface cursor-pointer active:scale-[0.97] transition-transform text-left"
                       >
-                        <img
+                        <Image
                           src={gp.pictureUrl}
                           alt={gp.guestName}
+                          width={150}
+                          height={150}
                           className="w-full aspect-square object-cover"
                         />
                         {gp.notes && (
@@ -436,13 +454,13 @@ export default function GuestPage() {
 
         {/* ===== SCREEN: CAMERA ===== */}
         {screen === "camera" && (
-          <div className="flex flex-col min-h-[720px] min-h-dvh sm:min-h-[720px] animate-[fadeIn_0.35s_ease]">
+          <div className="flex flex-col min-h-dvh sm:min-h-dvh animate-[fadeIn_0.35s_ease]">
             {/* Topbar */}
-            <div className="flex items-center gap-3 px-5 pt-[18px] pb-3.5 border-b border-border shrink-0">
+            <div className="flex items-center gap-3 px-5 pt-4.5 pb-3.5 border-b border-border shrink-0">
               <button
                 type="button"
                 onClick={() => navigateTo("landing")}
-                className="w-[34px] h-[34px] rounded-full bg-accent-hover flex items-center justify-center border-none cursor-pointer text-text-primary text-base shrink-0"
+                className="w-8.5 h-8.5 rounded-full bg-accent-hover flex items-center justify-center border-none cursor-pointer text-text-primary text-base shrink-0"
               >
                 <i className="ti ti-chevron-left" />
               </button>
@@ -450,9 +468,9 @@ export default function GuestPage() {
                 <div className="text-[15px] font-medium text-text-primary">
                   Foto langsung
                 </div>
-                <div className="text-[11.5px] text-text-muted mt-px">
+                {/* <div className="text-[11.5px] text-text-muted mt-px">
                   Pilih efek lalu jepret
-                </div>
+                </div> */}
               </div>
             </div>
 
@@ -477,12 +495,13 @@ export default function GuestPage() {
                 <button
                   type="button"
                   onClick={takePhoto}
-                  className="w-[66px] h-[66px] rounded-full bg-dark-text border-4 border-[#6B6357] cursor-pointer active:scale-90 transition-transform"
+                  className="w-16.5 h-16.5 rounded-full bg-dark-text border-4 border-[#6B6357] cursor-pointer active:scale-90 transition-transform"
                   aria-label="Jepret foto"
                 />
               </div>
               <div className="text-center text-[11.5px] text-[#A79B87] mt-3.5">
-                Foto ini akan memakai 1 dari {chancesLeft !== null ? chancesLeft - photosUsed : 0}{" "}
+                Foto ini akan memakai 1 dari{" "}
+                {chancesLeft !== null ? chancesLeft - photosUsed : 0}{" "}
                 kesempatanmu
               </div>
             </div>
@@ -491,13 +510,13 @@ export default function GuestPage() {
 
         {/* ===== SCREEN: RESULT ===== */}
         {screen === "result" && (
-          <div className="flex flex-col min-h-[720px] min-h-dvh sm:min-h-[720px] animate-[fadeIn_0.35s_ease]">
+          <div className="flex flex-col min-h-dvh sm:min-h-dvh animate-[fadeIn_0.35s_ease]">
             {/* Topbar */}
-            <div className="flex items-center gap-3 px-5 pt-[18px] pb-3.5 border-b border-border shrink-0">
+            <div className="flex items-center gap-3 px-5 pt-4.5 pb-3.5 border-b border-border shrink-0">
               <button
                 type="button"
                 onClick={() => navigateTo("camera")}
-                className="w-[34px] h-[34px] rounded-full bg-accent-hover flex items-center justify-center border-none cursor-pointer text-text-primary text-base shrink-0"
+                className="w-8.5 h-8.5 rounded-full bg-accent-hover flex items-center justify-center border-none cursor-pointer text-text-primary text-base shrink-0"
               >
                 <i className="ti ti-chevron-left" />
               </button>
@@ -517,38 +536,43 @@ export default function GuestPage() {
               {processedFrame && capturedPhoto ? (
                 <>
                   <div
-                    className={`relative self-center my-1.5 -rotate-[1.5deg] animate-[polaroidIn_0.5s_ease] ${
+                    className={`relative self-center my-1.5 rotate-[-1.5deg] animate-[polaroidIn_0.5s_ease] ${
                       filter === "Black & White"
                         ? "grayscale contrast-[1.05]"
                         : ""
                     }`}
                   >
-                    <img
+                    <Image
                       src={capturedPhoto}
                       alt=""
-                      className="absolute inset-0 w-full h-full object-cover"
+                      fill
+                      className="object-cover"
                     />
-                    <img
+                    <Image
                       src={processedFrame}
                       alt=""
+                      width={400}
+                      height={533}
+                      priority
                       className="relative w-full block"
                     />
                   </div>
                 </>
               ) : (
-                <div className="bg-surface p-3 pb-4 rounded shadow-[0_8px_24px_rgba(28,24,21,0.18)] -rotate-[1.5deg] self-center my-1.5 animate-[polaroidIn_0.5s_ease]">
+                <div className="bg-surface p-3 pb-4 rounded shadow-[0_8px_24px_rgba(28,24,21,0.18)] rotate-[-1.5deg] self-center my-1.5 animate-[polaroidIn_0.5s_ease]">
                   <div
-                    className={`w-[250px] h-[250px] rounded-sm overflow-hidden flex items-center justify-center bg-gradient-to-br from-[#D9CBAE] via-accent-light to-accent ${
+                    className={`relative w-62.5 h-62.5 rounded-sm overflow-hidden flex items-center justify-center bg-linear-to-br from-[#D9CBAE] via-accent-light to-accent ${
                       filter === "Black & White"
                         ? "grayscale contrast-[1.05]"
                         : ""
                     }`}
                   >
                     {capturedPhoto ? (
-                      <img
+                      <Image
                         src={capturedPhoto}
                         alt=""
-                        className="w-full h-full object-cover"
+                        fill
+                        className="object-cover"
                       />
                     ) : (
                       <i className="ti ti-user text-[48px] text-dark-text" />
@@ -561,7 +585,7 @@ export default function GuestPage() {
               <button
                 type="button"
                 onClick={() => navigateTo("camera")}
-                className="w-full border border-border-subtle rounded-xl py-[15px] text-[14.5px] font-medium text-text-primary flex items-center justify-center gap-2 mt-4 active:bg-accent-hover transition-colors"
+                className="w-full border border-border-subtle rounded-xl py-3.75 text-[14.5px] font-medium text-text-primary flex items-center justify-center gap-2 mt-4 active:bg-accent-hover transition-colors"
               >
                 <i className="ti ti-camera" />
                 Ambil ulang foto
@@ -598,11 +622,11 @@ export default function GuestPage() {
               <div className="flex items-center gap-3 border border-border rounded-xl px-3.5 py-3 bg-surface mb-3">
                 <button
                   type="button"
-                  className="w-[38px] h-[38px] rounded-full bg-[#2A2420] text-dark-text flex items-center justify-center border-none cursor-pointer shrink-0"
+                  className="w-9.5 h-9.5 rounded-full bg-[#2A2420] text-dark-text flex items-center justify-center border-none cursor-pointer shrink-0"
                 >
                   <i className="ti ti-microphone" />
                 </button>
-                <div className="flex items-center gap-[2px] flex-1 h-5">
+                <div className="flex items-center gap-0.5 flex-1 h-5">
                   {[6, 12, 8, 16, 10, 14, 7, 11, 9, 15, 6, 10].map((h, i) => (
                     <div
                       key={i}
@@ -626,7 +650,7 @@ export default function GuestPage() {
               </button>
               <button
                 type="button"
-                className="w-full border border-border-subtle rounded-xl py-[15px] text-[14.5px] font-medium text-text-primary flex items-center justify-center gap-2 mt-2.5 active:bg-accent-hover transition-colors"
+                className="w-full border border-border-subtle rounded-xl py-3.75 text-[14.5px] font-medium text-text-primary flex items-center justify-center gap-2 mt-2.5 active:bg-accent-hover transition-colors"
               >
                 <i className="ti ti-download" />
                 Unduh ke hp
@@ -637,8 +661,8 @@ export default function GuestPage() {
 
         {/* ===== SCREEN: DONE ===== */}
         {screen === "done" && (
-          <div className="flex flex-col items-center justify-center flex-1 px-8 py-8 text-center min-h-[720px] min-h-dvh sm:min-h-[720px] animate-[fadeIn_0.35s_ease]">
-            <div className="w-[62px] h-[62px] rounded-full bg-success/20 text-success flex items-center justify-center text-[26px] mb-4.5">
+          <div className="flex flex-col items-center justify-center flex-1 px-8 py-8 text-center min-h-dvh sm:min-h-dvh animate-[fadeIn_0.35s_ease]">
+            <div className="w-15.5 h-15.5 rounded-full bg-success/20 text-success flex items-center justify-center text-[26px] mb-4.5">
               <i className="ti ti-heart" />
             </div>
             <div className="text-[22px] font-medium text-text-primary mb-2 font-serif">
@@ -649,8 +673,8 @@ export default function GuestPage() {
             </div>
             <div className="flex items-center gap-2 text-[11.5px] text-text-on-accent-muted bg-accent-hover px-3.5 py-2.5 rounded-[10px] mb-6 text-left">
               <i className="ti ti-clock shrink-0" />
-              Pengantin bisa lihat foto ini selama 2 minggu, setelah itu otomatis
-              terhapus.
+              Pengantin bisa lihat foto ini selama 2 minggu, setelah itu
+              otomatis terhapus.
             </div>
             <button
               type="button"
@@ -676,13 +700,15 @@ export default function GuestPage() {
           onClick={() => setSelectedPhoto(null)}
         >
           <div
-            className="w-full max-w-[340px] mx-4 bg-[#F7F3ED] rounded-[24px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.4)] animate-[modalIn_0.25s_ease]"
+            className="w-full max-w-85 mx-4 bg-[#F7F3ED] rounded-3xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.4)] animate-[modalIn_0.25s_ease]"
             onClick={(e) => e.stopPropagation()}
           >
-            <img
+            <Image
               src={selectedPhoto.pictureUrl}
               alt={selectedPhoto.guestName}
-              className="w-full aspect-[3/4] object-cover"
+              width={400}
+              height={533}
+              className="w-full aspect-3/4 object-cover"
             />
             <div className="px-5 py-4">
               <div className="text-[14px] font-medium text-text-primary">

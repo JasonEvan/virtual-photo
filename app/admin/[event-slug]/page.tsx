@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
+import Image from "next/image";
 
 interface EventDetail {
   heroImage?: string | null;
@@ -42,7 +43,6 @@ function Dropzone({
   maxWidthClass,
   previewUrl,
   onFile,
-  onReset,
 }: DropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -63,11 +63,7 @@ function Dropzone({
           className={`border-[1.5px] border-dashed border-accent-light bg-accent-surface rounded-xl cursor-pointer hover:border-accent hover:bg-accent-hover transition-colors relative overflow-hidden flex flex-col items-center justify-center p-7 text-center ${aspectClass} ${maxWidthClass ?? ""}`}
         >
           {previewUrl ? (
-            <img
-              src={previewUrl}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover"
-            />
+            <Image src={previewUrl} alt="" fill className="object-cover" />
           ) : (
             <>
               <i className={`ti ${icon} text-[26px] text-accent mb-2`} />
@@ -158,7 +154,9 @@ export default function EventDetailPage() {
     const res = await fetch(`/api/events/slug/${slug}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ numGuests: numGuests === "" ? null : Number(numGuests) }),
+      body: JSON.stringify({
+        numGuests: numGuests === "" ? null : Number(numGuests),
+      }),
     });
     if (res.ok) {
       const updated = await res.json();
@@ -234,7 +232,7 @@ export default function EventDetailPage() {
 
   return (
     <div className="min-h-screen bg-background flex justify-center px-4 py-10">
-      <div className="w-full max-w-[480px]">
+      <div className="w-full max-w-120">
         <h1 className="text-[20px] font-semibold text-text-primary mb-1">
           {event.name}
         </h1>
@@ -317,7 +315,10 @@ export default function EventDetailPage() {
             value={maxPhotos}
             onChange={(e) => {
               const v = e.target.value;
-              if (v === "") { setMaxPhotos(0); return; }
+              if (v === "") {
+                setMaxPhotos(0);
+                return;
+              }
               const n = parseInt(v);
               if (!isNaN(n)) setMaxPhotos(n);
             }}
@@ -341,7 +342,10 @@ export default function EventDetailPage() {
             value={numGuests}
             onChange={(e) => {
               const v = e.target.value;
-              if (v === "") { setNumGuests(""); return; }
+              if (v === "") {
+                setNumGuests("");
+                return;
+              }
               const n = parseInt(v);
               if (!isNaN(n)) setNumGuests(n);
             }}

@@ -142,7 +142,7 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-background flex justify-center px-4 py-10">
-      <div className="w-full max-w-[520px]">
+      <div className="w-full max-w-130">
         <h1 className="text-[20px] font-semibold text-text-primary mb-1">
           Events
         </h1>
@@ -163,7 +163,7 @@ export default function AdminPage() {
             onClick={handleBackdropClick}
             onKeyDown={handleKeyDown}
           >
-            <div className="bg-surface border border-border rounded-[14px] p-5 w-full max-w-[420px] shadow-lg">
+            <div className="bg-surface border border-border rounded-[14px] p-5 w-full max-w-105 shadow-lg">
               <div className="text-[14.5px] font-semibold text-text-primary mb-4">
                 {editingId ? "Edit Event" : "New Event"}
               </div>
