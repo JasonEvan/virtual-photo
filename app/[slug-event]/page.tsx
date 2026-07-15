@@ -359,36 +359,37 @@ export default function GuestPage() {
                   className="object-contain"
                 />
               )}
-              <div className="absolute inset-0 bg-linear-to-b from-[rgba(28,24,21,0.05)] to-[rgba(28,24,21,0.35)]" />
+
+
+              {/* Quota + CTA overlapping hero bottom */}
+              <div className="absolute bottom-0 inset-x-0 px-6 pb-5 pt-8">
+                <div className="flex items-center justify-between bg-black/30 backdrop-blur-md border border-black/10 rounded-xl px-4 py-3 mb-3">
+                  <span className="text-[12.5px] text-white">
+                    Sisa kesempatan foto kamu
+                  </span>
+                  <span className="text-[12.5px] font-semibold text-white">
+                    {chancesLeft !== null ? chancesLeft - photosUsed : 0}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigateTo("camera")}
+                  disabled={chancesLeft === null || photosUsed >= chancesLeft}
+                  className="w-full bg-white/80 text-black rounded-xl py-4 text-[15px] font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:bg-white/30 disabled:text-black/40 disabled:cursor-not-allowed shadow-lg"
+                >
+                  <i className="ti ti-camera" />
+                  Mulai ambil foto
+                </button>
+              </div>
             </div>
 
             {/* Body */}
-            <div className="px-6 py-5 flex-1 flex flex-col bg-[#1C1815] text-white">
-              {/* Quota */}
-              <div className="flex items-center justify-between bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-4 py-3 mb-5">
-                <span className="text-[12.5px] text-white/90">
-                  Sisa kesempatan foto kamu
-                </span>
-                <span className="text-[12.5px] font-semibold text-white">
-                  {chancesLeft !== null ? chancesLeft - photosUsed : 0}
-                </span>
-              </div>
-
-              {/* CTA */}
-              <button
-                type="button"
-                onClick={() => navigateTo("camera")}
-                disabled={chancesLeft === null || photosUsed >= chancesLeft}
-                className="w-full bg-white text-black rounded-xl py-4 text-[15px] font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:bg-white/40 disabled:text-black/60 disabled:cursor-not-allowed shadow-lg"
-              >
-                <i className="ti ti-camera" />
-                Mulai ambil foto
-              </button>
+            <div className="px-6 py-5 flex-1 flex flex-col">
 
               {/* Guest photos gallery */}
               {guestPhotos.length > 0 && (
-                <div className="mt-6 pt-5 border-t border-white/20">
-                  <div className="text-[11px] tracking-[0.14em] uppercase text-white/70 font-medium mb-3">
+                <div className="mt-6 pt-5 border-t border-border">
+                  <div className="text-[11px] tracking-[0.14em] uppercase text-text-muted font-medium mb-3">
                     Galeri foto tamu
                   </div>
                   <div className="grid grid-cols-3 gap-2">
@@ -403,7 +404,7 @@ export default function GuestPage() {
                             notes: gp.notes,
                           })
                         }
-                        className="rounded-lg overflow-hidden border border-white/10 bg-black/40 cursor-pointer active:scale-[0.97] transition-transform text-left"
+                        className="rounded-lg overflow-hidden border border-border bg-surface cursor-pointer active:scale-[0.97] transition-transform text-left"
                       >
                         <Image
                           src={gp.pictureUrl}
@@ -413,7 +414,7 @@ export default function GuestPage() {
                           className="w-full aspect-square object-cover"
                         />
                         {gp.notes && (
-                          <div className="px-1.5 py-1.5 text-[10px] text-white/70 leading-tight line-clamp-2">
+                          <div className="px-1.5 py-1.5 text-[10px] text-text-muted leading-tight line-clamp-2">
                             {gp.notes}
                           </div>
                         )}
