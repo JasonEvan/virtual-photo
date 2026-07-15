@@ -9,11 +9,22 @@ interface Event {
   slug: string;
   startDate: string;
   endDate: string;
+  packetId?: string | null;
+  packet?: {
+    id: string;
+    name: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
 }
 
-const emptyForm = { name: "", slug: "", startDate: "", endDate: "" };
+const emptyForm = {
+  name: "",
+  slug: "",
+  startDate: "",
+  endDate: "",
+  packetId: "",
+};
 
 function slugify(text: string): string {
   return text
@@ -26,6 +37,9 @@ function slugify(text: string): string {
 
 export default function AdminPage() {
   const [events, setEvents] = useState<Event[]>([]);
+  const [packetsList, setPacketsList] = useState<
+    { id: string; name: string }[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -73,6 +87,20 @@ export default function AdminPage() {
     };
   }, []);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/packets");
+        if (res.ok) {
+          const data = await res.json();
+          setPacketsList(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch packets:", err);
+      }
+    })();
+  }, []);
+
   const openCreate = () => {
     setForm(emptyForm);
     setEditingId(null);
@@ -85,6 +113,7 @@ export default function AdminPage() {
       slug: event.slug,
       startDate: event.startDate,
       endDate: event.endDate,
+      packetId: event.packetId || "",
     });
     setEditingId(event.id);
     setShowForm(true);
@@ -180,6 +209,28 @@ export default function AdminPage() {
                     className="w-full border border-border rounded-[10px] px-3 py-2.5 text-[13.5px] text-text-primary bg-white outline-none focus:border-accent transition-colors"
                     placeholder="Pernikahan Ayu & Bagas"
                   />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-text-secondary mb-1.5">
+                    Packet
+                  </label>
+                  <select
+                    value={form.packetId}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, packetId: e.target.value }))
+                    }
+                    required
+                    className="w-full border border-border rounded-[10px] px-3 py-2.5 text-[13.5px] text-text-primary bg-white outline-none focus:border-accent transition-colors"
+                  >
+                    <option value="" disabled>
+                      Select a packet
+                    </option>
+                    {packetsList.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-text-secondary mb-1.5">
@@ -293,8 +344,15 @@ export default function AdminPage() {
                     </button>
                   </div>
                 </div>
-                <div className="text-xs text-text-secondary">
-                  {event.startDate} — {event.endDate}
+                <div className="text-xs text-text-secondary flex items-center justify-between mt-1">
+                  <span>
+                    {event.startDate} — {event.endDate}
+                  </span>
+                  {event.packet?.name && (
+                    <span className="px-2.5 py-0.75 bg-accent/15 text-accent rounded-full font-medium text-[10px] uppercase tracking-wider font-semibold">
+                      {event.packet.name.split(":")[0]}
+                    </span>
+                  )}
                 </div>
               </div>
             ))}

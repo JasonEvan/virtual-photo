@@ -15,9 +15,9 @@ export async function GET(_request: Request, { params }: RouteContext) {
 export async function PUT(request: Request, { params }: RouteContext) {
   const { id } = await params;
   const body = await request.json();
-  const { name, slug, startDate, endDate } = body;
+  const { name, slug, startDate, endDate, packetId } = body;
 
-  const event = await updateEvent(id, { name, slug, startDate, endDate });
+  const event = await updateEvent(id, { name, slug, startDate, endDate, packetId });
   if (!event) {
     return NextResponse.json({ error: "Event not found" }, { status: 404 });
   }

@@ -1,10 +1,14 @@
 import { eq, desc, count, sql } from "drizzle-orm";
 import { db } from "./db";
-import { events, eventDetails, guestPhotos, guests } from "./db/schema";
+import { events, eventDetails, guestPhotos, guests, packets } from "./db/schema";
 
 export type Event = typeof events.$inferSelect;
 export type EventDetail = typeof eventDetails.$inferSelect;
-export type EventWithDetail = Event & { detail: EventDetail | null };
+export type Packet = typeof packets.$inferSelect;
+export type EventWithDetail = Event & {
+  detail: EventDetail | null;
+  packet: Packet | null;
+};
 export type GuestPhoto = typeof guestPhotos.$inferSelect;
 export type Guest = typeof guests.$inferSelect;
 
@@ -12,10 +16,12 @@ export async function getAllEvents(): Promise<EventWithDetail[]> {
   const rows = await db
     .select()
     .from(events)
-    .leftJoin(eventDetails, eq(events.id, eventDetails.eventId));
+    .leftJoin(eventDetails, eq(events.id, eventDetails.eventId))
+    .leftJoin(packets, eq(events.packetId, packets.id));
   return rows.map((row) => ({
     ...row.events,
     detail: row.event_details,
+    packet: row.packets,
   }));
 }
 
@@ -26,10 +32,11 @@ export async function getEventById(
     .select()
     .from(events)
     .leftJoin(eventDetails, eq(events.id, eventDetails.eventId))
+    .leftJoin(packets, eq(events.packetId, packets.id))
     .where(eq(events.id, id));
   const row = rows[0];
   if (!row) return undefined;
-  return { ...row.events, detail: row.event_details };
+  return { ...row.events, detail: row.event_details, packet: row.packets };
 }
 
 export async function getEventBySlug(
@@ -39,10 +46,11 @@ export async function getEventBySlug(
     .select()
     .from(events)
     .leftJoin(eventDetails, eq(events.id, eventDetails.eventId))
+    .leftJoin(packets, eq(events.packetId, packets.id))
     .where(eq(events.slug, slug));
   const row = rows[0];
   if (!row) return undefined;
-  return { ...row.events, detail: row.event_details };
+  return { ...row.events, detail: row.event_details, packet: row.packets };
 }
 
 export async function createEvent(data: {
@@ -50,6 +58,7 @@ export async function createEvent(data: {
   slug: string;
   startDate: string;
   endDate: string;
+  packetId?: string | null;
 }): Promise<Event> {
   const [event] = await db
     .insert(events)
@@ -58,6 +67,7 @@ export async function createEvent(data: {
       slug: data.slug,
       startDate: data.startDate,
       endDate: data.endDate,
+      packetId: data.packetId ?? null,
     })
     .returning();
   return event;
@@ -93,7 +103,7 @@ export async function upsertEventDetail(
 
 export async function updateEvent(
   id: string,
-  data: Partial<Pick<Event, "name" | "slug" | "startDate" | "endDate">>,
+  data: Partial<Pick<Event, "name" | "slug" | "startDate" | "endDate" | "packetId">>,
 ): Promise<Event | null> {
   const [updated] = await db
     .update(events)
@@ -182,4 +192,28 @@ export async function decrementGuestChances(
     .where(eq(guests.id, guestId))
     .returning();
   return row;
+}
+
+export async function seedPackets(): Promise<void> {
+  console.log("[DB] seedPackets: Checking packets table...");
+  const rows = await db.select().from(packets).limit(1);
+  console.log("[DB] seedPackets: Found packets count:", rows.length);
+  if (rows.length === 0) {
+    console.log("[DB] seedPackets: Seeding packets...");
+    await db.insert(packets).values([
+      { name: "Paket 1: Foto, Ucapan", hasPhoto: true, hasNotes: true, hasVn: false, hasFilter: false, hasGif: false },
+      { name: "Paket 2: Foto, Ucapan, VN", hasPhoto: true, hasNotes: true, hasVn: true, hasFilter: false, hasGif: false },
+      { name: "Paket 3: Foto, Ucapan, VN, Filter", hasPhoto: true, hasNotes: true, hasVn: true, hasFilter: true, hasGif: false },
+      { name: "Paket 4: Foto, Ucapan, VN, Filter, GIF", hasPhoto: true, hasNotes: true, hasVn: true, hasFilter: true, hasGif: true },
+    ]);
+    console.log("[DB] seedPackets: Seeding completed.");
+  }
+}
+
+export async function getAllPackets(): Promise<Packet[]> {
+  console.log("[DB] getAllPackets: Fetching all packets...");
+  await seedPackets();
+  const result = await db.select().from(packets).orderBy(packets.name);
+  console.log("[DB] getAllPackets: Returned packets:", result.length);
+  return result;
 }

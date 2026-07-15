@@ -4,7 +4,19 @@ import {
   text,
   integer,
   timestamp,
+  boolean,
 } from "drizzle-orm/pg-core";
+
+export const packets = pgTable("packets", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  hasPhoto: boolean("has_photo").default(true).notNull(),
+  hasNotes: boolean("has_notes").default(true).notNull(),
+  hasVn: boolean("has_vn").default(false).notNull(),
+  hasFilter: boolean("has_filter").default(false).notNull(),
+  hasGif: boolean("has_gif").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
 
 export const events = pgTable("events", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -12,6 +24,7 @@ export const events = pgTable("events", {
   slug: text("slug").notNull().unique(),
   startDate: text("start_date").notNull(),
   endDate: text("end_date").notNull(),
+  packetId: uuid("packet_id").references(() => packets.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

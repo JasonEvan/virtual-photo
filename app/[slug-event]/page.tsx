@@ -10,6 +10,16 @@ interface EventDetail {
   maxPhotos?: number;
 }
 
+interface Packet {
+  id: string;
+  name: string;
+  hasPhoto: boolean;
+  hasNotes: boolean;
+  hasVn: boolean;
+  hasFilter: boolean;
+  hasGif: boolean;
+}
+
 interface Event {
   id: string;
   name: string;
@@ -17,10 +27,10 @@ interface Event {
   startDate: string;
   endDate: string;
   detail?: EventDetail | null;
+  packet?: Packet | null;
 }
 
 type Screen = "landing" | "camera" | "result" | "done";
-
 
 function removeGreenScreen(imageUrl: string): Promise<string> {
   return new Promise((resolve) => {
@@ -100,7 +110,9 @@ export default function GuestPage() {
     voiceUrl?: string | null;
   } | null>(null);
 
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(
+    null,
+  );
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [voiceBase64, setVoiceBase64] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -348,7 +360,17 @@ export default function GuestPage() {
           sy = (photoImg.naturalHeight - sHeight) / 2;
         }
 
-        ctx.drawImage(photoImg, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(
+          photoImg,
+          sx,
+          sy,
+          sWidth,
+          sHeight,
+          0,
+          0,
+          canvas.width,
+          canvas.height,
+        );
         ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
 
         imageUrl = canvas.toDataURL("image/jpeg", 0.95);
@@ -394,7 +416,17 @@ export default function GuestPage() {
           sy = (photoImg.naturalHeight - sHeight) / 2;
         }
 
-        ctx.drawImage(photoImg, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(
+          photoImg,
+          sx,
+          sy,
+          sWidth,
+          sHeight,
+          0,
+          0,
+          canvas.width,
+          canvas.height,
+        );
         ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
         blob = await new Promise<Blob>((resolve) =>
           canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.92),
@@ -432,7 +464,6 @@ export default function GuestPage() {
     saving,
     notes,
     guestName,
-    audioBlob,
     voiceBase64,
     guestId,
     processedFrame,
@@ -510,7 +541,6 @@ export default function GuestPage() {
                 />
               )}
 
-
               {/* Quota + CTA overlapping hero bottom */}
               <div className="absolute bottom-0 inset-x-0 px-6 pb-5 pt-8">
                 <div className="flex items-center justify-between bg-black/30 backdrop-blur-md border border-black/10 rounded-xl px-4 py-3 mb-3">
@@ -535,7 +565,6 @@ export default function GuestPage() {
 
             {/* Body */}
             <div className="px-6 py-5 flex-1 flex flex-col">
-
               {/* Guest photos gallery */}
               {guestPhotos.length > 0 && (
                 <div className="mt-6 pt-5 border-t border-border">
@@ -718,22 +747,24 @@ export default function GuestPage() {
               </button>
 
               {/* Filter toggle */}
-              <div className="flex gap-2 mt-5 mb-5">
-                {(["Natural", "Black & White"] as const).map((f) => (
-                  <button
-                    key={f}
-                    type="button"
-                    onClick={() => setFilter(f)}
-                    className={`flex-1 py-2.5 rounded-[10px] border text-[12.5px] font-medium transition-colors ${
-                      filter === f
-                        ? "bg-dark text-dark-text border-dark"
-                        : "border-border text-[#6B6357]"
-                    }`}
-                  >
-                    {f}
-                  </button>
-                ))}
-              </div>
+              {(!event?.packet || event.packet.hasFilter) && (
+                <div className="flex gap-2 mt-5 mb-5">
+                  {(["Natural", "Black & White"] as const).map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setFilter(f)}
+                      className={`flex-1 py-2.5 rounded-[10px] border text-[12.5px] font-medium transition-colors ${
+                        filter === f
+                          ? "bg-dark text-dark-text border-dark"
+                          : "border-border text-[#6B6357]"
+                      }`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {/* Nama Pengirim */}
               <input
@@ -742,7 +773,7 @@ export default function GuestPage() {
                 value={guestName}
                 onChange={(e) => setGuestName(e.target.value)}
                 required
-                className="w-full border border-border rounded-xl px-3.5 py-3 text-[13.5px] font-inherit bg-surface text-text-primary placeholder:text-[#A79B87] mb-3"
+                className="w-full border border-border rounded-xl px-3.5 py-3 text-[13.5px] font-inherit bg-surface text-text-primary placeholder:text-[#A79B87] mb-3 mt-1"
               />
 
               {/* Notes */}
@@ -756,36 +787,59 @@ export default function GuestPage() {
               />
 
               {/* Voice note row */}
-              <div className="flex items-center gap-3 border border-border rounded-xl px-3.5 py-3 bg-surface mb-3">
-                <button
-                  type="button"
-                  onClick={isRecording ? stopRecording : (audioBlob ? () => { setAudioBlob(null); setVoiceBase64(null); } : startRecording)}
-                  className={`w-9.5 h-9.5 rounded-full flex items-center justify-center border-none cursor-pointer shrink-0 ${
-                    isRecording
-                      ? "bg-red-500 animate-pulse text-white"
-                      : audioBlob
-                      ? "bg-red-600 text-white"
-                      : "bg-[#2A2420] text-dark-text"
-                  }`}
-                >
-                  <i className={`ti ${isRecording ? "ti-player-stop" : audioBlob ? "ti-trash" : "ti-microphone"}`} />
-                </button>
-                <div className="flex items-center gap-0.5 flex-1 h-5">
-                  {isRecording ? (
-                    <div className="flex items-center gap-1.5 flex-1">
-                      <span className="text-[12.5px] text-red-500 animate-pulse font-medium">Merekam...</span>
-                      <span className="text-[11.5px] text-text-muted ml-auto font-mono">{recordingDuration}s / 30s</span>
-                    </div>
-                  ) : audioBlob ? (
-                    <div className="flex items-center gap-1.5 flex-1">
-                      <span className="text-[12.5px] text-green-600 font-medium">Pesan suara direkam</span>
-                      <span className="text-[11.5px] text-text-muted ml-auto font-mono">{recordingDuration}s</span>
-                    </div>
-                  ) : (
-                    <span className="text-[12.5px] text-text-muted">Ketuk ikon untuk rekam pesan suara</span>
-                  )}
+              {(!event?.packet || event.packet.hasVn) && (
+                <div className="flex items-center gap-3 border border-border rounded-xl px-3.5 py-3 bg-surface mb-3">
+                  <button
+                    type="button"
+                    onClick={
+                      isRecording
+                        ? stopRecording
+                        : audioBlob
+                          ? () => {
+                              setAudioBlob(null);
+                              setVoiceBase64(null);
+                            }
+                          : startRecording
+                    }
+                    className={`w-9.5 h-9.5 rounded-full flex items-center justify-center border-none cursor-pointer shrink-0 ${
+                      isRecording
+                        ? "bg-red-500 animate-pulse text-white"
+                        : audioBlob
+                          ? "bg-red-600 text-white"
+                          : "bg-[#2A2420] text-dark-text"
+                    }`}
+                  >
+                    <i
+                      className={`ti ${isRecording ? "ti-player-stop" : audioBlob ? "ti-trash" : "ti-microphone"}`}
+                    />
+                  </button>
+                  <div className="flex items-center gap-0.5 flex-1 h-5">
+                    {isRecording ? (
+                      <div className="flex items-center gap-1.5 flex-1">
+                        <span className="text-[12.5px] text-red-500 animate-pulse font-medium">
+                          Merekam...
+                        </span>
+                        <span className="text-[11.5px] text-text-muted ml-auto font-mono">
+                          {recordingDuration}s / 30s
+                        </span>
+                      </div>
+                    ) : audioBlob ? (
+                      <div className="flex items-center gap-1.5 flex-1">
+                        <span className="text-[12.5px] text-green-600 font-medium">
+                          Pesan suara direkam
+                        </span>
+                        <span className="text-[11.5px] text-text-muted ml-auto font-mono">
+                          {recordingDuration}s
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-[12.5px] text-text-muted">
+                        Ketuk ikon untuk rekam pesan suara
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Actions */}
               <button

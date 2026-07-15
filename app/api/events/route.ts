@@ -8,7 +8,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const { name, slug, startDate, endDate } = body;
+  const { name, slug, startDate, endDate, packetId } = body;
 
   if (!name || !slug || !startDate || !endDate) {
     return NextResponse.json(
@@ -17,6 +17,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const event = await createEvent({ name, slug, startDate, endDate });
+  const event = await createEvent({ name, slug, startDate, endDate, packetId });
   return NextResponse.json(event, { status: 201 });
 }
