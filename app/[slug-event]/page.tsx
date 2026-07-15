@@ -241,6 +241,51 @@ export default function GuestPage() {
     navigateTo("result");
   }, [photosUsed, chancesLeft, navigateTo]);
 
+  const downloadPhoto = useCallback(async () => {
+    if (!capturedPhoto || !event) return;
+    try {
+      let imageUrl = capturedPhoto;
+      if (processedFrame) {
+        const photoImg = await loadImage(capturedPhoto);
+        const frameImg = await loadImage(processedFrame);
+        const canvas = document.createElement("canvas");
+        canvas.width = frameImg.naturalWidth;
+        canvas.height = frameImg.naturalHeight;
+        const ctx = canvas.getContext("2d")!;
+
+        // Draw guest photo covering the frame area (object-cover)
+        const sAspect = photoImg.naturalWidth / photoImg.naturalHeight;
+        const dAspect = canvas.width / canvas.height;
+        let sWidth = photoImg.naturalWidth;
+        let sHeight = photoImg.naturalHeight;
+        let sx = 0;
+        let sy = 0;
+
+        if (sAspect > dAspect) {
+          sWidth = sHeight * dAspect;
+          sx = (photoImg.naturalWidth - sWidth) / 2;
+        } else {
+          sHeight = sWidth / dAspect;
+          sy = (photoImg.naturalHeight - sHeight) / 2;
+        }
+
+        ctx.drawImage(photoImg, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
+
+        imageUrl = canvas.toDataURL("image/jpeg", 0.95);
+      }
+
+      const link = document.createElement("a");
+      link.href = imageUrl;
+      link.download = `foto-${event.slug}-${Date.now()}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error("Failed to download photo:", err);
+    }
+  }, [capturedPhoto, processedFrame, event]);
+
   const savePhoto = useCallback(async () => {
     if (!capturedPhoto || !event || saving) return;
     setSaving(true);
@@ -654,6 +699,7 @@ export default function GuestPage() {
               </button>
               <button
                 type="button"
+                onClick={downloadPhoto}
                 className="w-full border border-border-subtle rounded-xl py-3.75 text-[14.5px] font-medium text-text-primary flex items-center justify-center gap-2 mt-2.5 active:bg-accent-hover transition-colors"
               >
                 <i className="ti ti-download" />
