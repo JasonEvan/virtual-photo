@@ -96,6 +96,15 @@ export default function TrialGalleryPage() {
     [downloading],
   );
 
+  const handleClearGallery = useCallback(() => {
+    if (
+      confirm("Apakah Anda yakin ingin menghapus semua foto uji coba di galeri ini?")
+    ) {
+      localStorage.removeItem("vphoto_trial_photos");
+      setGuestPhotos([]);
+    }
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -132,6 +141,20 @@ export default function TrialGalleryPage() {
               {event.name}
             </div>
           </div>
+          {guestPhotos.length > 0 && (
+            <button
+              type="button"
+              onClick={handleClearGallery}
+              className="w-8.5 h-8.5 rounded-full hover:bg-red-50 flex items-center justify-center border-none cursor-pointer transition-colors"
+              title="Kosongkan Galeri Uji Coba"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-red-500">
+                <path d="M3 6h18" />
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Scrollable Gallery Content */}
