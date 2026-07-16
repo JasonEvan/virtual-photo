@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getEventBySlug, getGuestById } from "./lib/events";
+import { verifyJWT } from "./lib/auth";
 
 const INVALID_HTML = `<!DOCTYPE html>
 <html lang="id">
@@ -54,6 +55,33 @@ function isValidUUID(str: string): boolean {
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
+  // 1. Handle Admin authentication route verification
+  if (pathname.startsWith("/admin")) {
+    const token = request.cookies.get("admin_token")?.value;
+
+    if (pathname === "/admin/login") {
+      if (token) {
+        const payload = await verifyJWT(token);
+        if (payload) {
+          return NextResponse.redirect(new URL("/admin", request.url));
+        }
+      }
+      return NextResponse.next();
+    }
+
+    if (!token) {
+      return NextResponse.redirect(new URL("/admin/login", request.url));
+    }
+    const payload = await verifyJWT(token);
+    if (!payload) {
+      const response = NextResponse.redirect(new URL("/admin/login", request.url));
+      response.cookies.delete("admin_token");
+      return response;
+    }
+    return NextResponse.next();
+  }
+
+  // 2. Handle Event guest validation
   const slug = pathname.split("/").filter(Boolean)[0];
   if (!slug) return NextResponse.next();
 
@@ -86,6 +114,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api|_next/static|_next/image|admin|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

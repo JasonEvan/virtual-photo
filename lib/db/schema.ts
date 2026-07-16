@@ -66,3 +66,11 @@ export const guests = pgTable("guests", {
   chancesLeft: integer("chances_left").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const admins = pgTable("admins", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
