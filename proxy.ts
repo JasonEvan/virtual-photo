@@ -55,6 +55,11 @@ function isValidUUID(str: string): boolean {
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
+  // Bypass middleware logic for trial page routes
+  if (pathname.startsWith("/trial")) {
+    return NextResponse.next();
+  }
+
   // 1. Handle Admin authentication route verification
   if (pathname.startsWith("/admin")) {
     const token = request.cookies.get("admin_token")?.value;
