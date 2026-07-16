@@ -8,6 +8,9 @@ import Link from "next/link";
 interface EventDetail {
   heroImage?: string | null;
   frameImage?: string | null;
+  frameImage11?: string | null;
+  frameImage34?: string | null;
+  frameImage169?: string | null;
   maxPhotos?: number;
 }
 
@@ -91,7 +94,31 @@ export default function GuestPage() {
 
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [filter, setFilter] = useState<"Natural" | "Black & White">("Natural");
-  const [processedFrame, setProcessedFrame] = useState<string | null>(null);
+  const [selectedRatio, setSelectedRatio] = useState<"1:1" | "3:4" | "16:9">(
+    "3:4",
+  );
+  const [processedFrame11, setProcessedFrame11] = useState<string | null>(null);
+  const [processedFrame34, setProcessedFrame34] = useState<string | null>(null);
+  const [processedFrame169, setProcessedFrame169] = useState<string | null>(
+    null,
+  );
+  const [processedFrameLegacy, setProcessedFrameLegacy] = useState<
+    string | null
+  >(null);
+
+  // Get active processed frame based on selected ratio
+  const getActiveFrame = useCallback(() => {
+    if (selectedRatio === "1:1") return processedFrame11;
+    if (selectedRatio === "16:9") return processedFrame169;
+    return processedFrame34 || processedFrameLegacy;
+  }, [
+    selectedRatio,
+    processedFrame11,
+    processedFrame34,
+    processedFrame169,
+    processedFrameLegacy,
+  ]);
+
   const [notes, setNotes] = useState("");
   const [guestName, setGuestName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -202,21 +229,57 @@ export default function GuestPage() {
     }, 0);
   }, [fetchPhotos]);
 
-  // Process frame image (chroma key green screen removal)
+  // Process frame images (chroma key green screen removal)
   useEffect(() => {
-    const frameUrl = event?.detail?.frameImage;
-    if (!frameUrl) {
-      setTimeout(() => setProcessedFrame(null), 0);
-      return;
-    }
+    if (!event?.detail) return;
     let cancelled = false;
-    removeGreenScreen(frameUrl).then((result) => {
-      if (!cancelled) setProcessedFrame(result);
-    });
+
+    // Legacy
+    if (event.detail.frameImage) {
+      removeGreenScreen(event.detail.frameImage).then((result) => {
+        if (!cancelled) setProcessedFrameLegacy(result);
+      });
+    } else {
+      setTimeout(() => setProcessedFrameLegacy(null), 0);
+    }
+
+    // 1:1
+    if (event.detail.frameImage11) {
+      removeGreenScreen(event.detail.frameImage11).then((result) => {
+        if (!cancelled) setProcessedFrame11(result);
+      });
+    } else {
+      setTimeout(() => setProcessedFrame11(null), 0);
+    }
+
+    // 3:4
+    if (event.detail.frameImage34) {
+      removeGreenScreen(event.detail.frameImage34).then((result) => {
+        if (!cancelled) setProcessedFrame34(result);
+      });
+    } else {
+      setTimeout(() => setProcessedFrame34(null), 0);
+    }
+
+    // 16:9
+    if (event.detail.frameImage169) {
+      removeGreenScreen(event.detail.frameImage169).then((result) => {
+        if (!cancelled) setProcessedFrame169(result);
+      });
+    } else {
+      setTimeout(() => setProcessedFrame169(null), 0);
+    }
+
     return () => {
       cancelled = true;
     };
-  }, [event?.detail?.frameImage]);
+  }, [
+    event?.detail?.frameImage,
+    event?.detail?.frameImage11,
+    event?.detail?.frameImage34,
+    event?.detail?.frameImage169,
+    event?.detail,
+  ]);
 
   // Camera management
   const startCamera = useCallback(async () => {
@@ -342,9 +405,10 @@ export default function GuestPage() {
     if (!capturedPhoto || !event) return;
     try {
       let imageUrl = capturedPhoto;
-      if (processedFrame) {
+      const activeFrame = getActiveFrame();
+      if (activeFrame) {
         const photoImg = await loadImage(capturedPhoto);
-        const frameImg = await loadImage(processedFrame);
+        const frameImg = await loadImage(activeFrame);
         const canvas = document.createElement("canvas");
         canvas.width = frameImg.naturalWidth;
         canvas.height = frameImg.naturalHeight;
@@ -391,40 +455,44 @@ export default function GuestPage() {
     } catch (err) {
       console.error("Failed to download photo:", err);
     }
-  }, [capturedPhoto, processedFrame, event]);
+  }, [capturedPhoto, getActiveFrame, event]);
 
-  const handleDownload = useCallback(async (photoId: string, guestName: string) => {
-    if (downloading) return;
-    setDownloading(true);
-    try {
-      const res = await fetch(`/api/photos/${photoId}/download`);
-      if (!res.ok) throw new Error("Failed to download ZIP");
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      const safeName = guestName.replace(/[^a-zA-Z0-9]/g, "_") || "guest";
-      link.download = `greeting-${safeName}.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error(err);
-      alert("Gagal mengunduh ZIP.");
-    } finally {
-      setDownloading(false);
-    }
-  }, [downloading]);
+  const handleDownload = useCallback(
+    async (photoId: string, guestName: string) => {
+      if (downloading) return;
+      setDownloading(true);
+      try {
+        const res = await fetch(`/api/photos/${photoId}/download`);
+        if (!res.ok) throw new Error("Failed to download ZIP");
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        const safeName = guestName.replace(/[^a-zA-Z0-9]/g, "_") || "guest";
+        link.download = `greeting-${safeName}.zip`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error(err);
+        alert("Gagal mengunduh ZIP.");
+      } finally {
+        setDownloading(false);
+      }
+    },
+    [downloading],
+  );
 
   const savePhoto = useCallback(async () => {
     if (!capturedPhoto || !event || saving) return;
     setSaving(true);
     try {
       let blob: Blob;
-      if (processedFrame) {
+      const activeFrame = getActiveFrame();
+      if (activeFrame) {
         const photoImg = await loadImage(capturedPhoto);
-        const frameImg = await loadImage(processedFrame);
+        const frameImg = await loadImage(activeFrame);
         const canvas = document.createElement("canvas");
         canvas.width = frameImg.naturalWidth;
         canvas.height = frameImg.naturalHeight;
@@ -496,7 +564,7 @@ export default function GuestPage() {
     guestName,
     voiceBase64,
     guestId,
-    processedFrame,
+    getActiveFrame,
     navigateTo,
     fetchPhotos,
   ]);
@@ -728,7 +796,7 @@ export default function GuestPage() {
             {/* Result content */}
             <div className="flex-1 px-6 py-4 flex flex-col overflow-y-auto min-h-0">
               {/* Polaroid */}
-              {processedFrame && capturedPhoto ? (
+              {getActiveFrame() && capturedPhoto ? (
                 <>
                   <div
                     className={`relative self-center my-1.5 rotate-[-1.5deg] animate-[polaroidIn_0.5s_ease] ${
@@ -736,6 +804,9 @@ export default function GuestPage() {
                         ? "grayscale contrast-[1.05]"
                         : ""
                     }`}
+                    style={{
+                      width: "250px",
+                    }}
                   >
                     <Image
                       src={capturedPhoto}
@@ -744,10 +815,10 @@ export default function GuestPage() {
                       className="object-cover"
                     />
                     <Image
-                      src={processedFrame}
+                      src={getActiveFrame()!}
                       alt=""
                       width={400}
-                      height={533}
+                      height={selectedRatio === "1:1" ? 400 : selectedRatio === "3:4" ? 533 : 711}
                       priority
                       className="relative w-full block"
                     />
@@ -756,7 +827,16 @@ export default function GuestPage() {
               ) : (
                 <div className="bg-surface p-3 pb-4 rounded shadow-[0_8px_24px_rgba(28,24,21,0.18)] rotate-[-1.5deg] self-center my-1.5 animate-[polaroidIn_0.5s_ease]">
                   <div
-                    className={`relative w-62.5 h-62.5 rounded-sm overflow-hidden flex items-center justify-center bg-linear-to-br from-[#D9CBAE] via-accent-light to-accent ${
+                    style={{
+                      width: "250px",
+                      aspectRatio:
+                        selectedRatio === "1:1"
+                          ? "1/1"
+                          : selectedRatio === "3:4"
+                            ? "3/4"
+                            : "9/16",
+                    }}
+                    className={`relative overflow-hidden flex items-center justify-center bg-linear-to-br from-[#D9CBAE] via-accent-light to-accent ${
                       filter === "Black & White"
                         ? "grayscale contrast-[1.05]"
                         : ""
@@ -775,6 +855,35 @@ export default function GuestPage() {
                   </div>
                 </div>
               )}
+
+              {/* Ratio Selector Button Group */}
+              <div className="flex flex-col gap-2 mt-4 px-2">
+                <div className="text-[10px] uppercase tracking-widest text-[#8F8372] font-semibold text-center">
+                  Pilih Rasio Frame
+                </div>
+                <div className="flex gap-1.5 bg-[#EFEBE4] p-1.5 rounded-xl border border-border/40">
+                  {(
+                    [
+                      { label: "1:1 Square", val: "1:1" },
+                      { label: "3:4 Portrait", val: "3:4" },
+                      { label: "16:9 Portrait", val: "16:9" },
+                    ] as const
+                  ).map((item) => (
+                    <button
+                      key={item.val}
+                      type="button"
+                      onClick={() => setSelectedRatio(item.val)}
+                      className={`flex-1 py-2 rounded-lg text-[12px] font-semibold transition-all cursor-pointer ${
+                        selectedRatio === item.val
+                          ? "bg-dark text-dark-text shadow-sm"
+                          : "text-text-muted hover:text-text-primary bg-transparent"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               {/* Retake */}
               <button
@@ -1007,7 +1116,9 @@ export default function GuestPage() {
                 <button
                   type="button"
                   disabled={downloading}
-                  onClick={() => handleDownload(selectedPhoto.id!, selectedPhoto.guestName)}
+                  onClick={() =>
+                    handleDownload(selectedPhoto.id!, selectedPhoto.guestName)
+                  }
                   className="flex-1 py-4 text-[13.5px] font-semibold text-accent active:bg-accent-hover transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer border-l border-border/60"
                 >
                   {downloading ? (

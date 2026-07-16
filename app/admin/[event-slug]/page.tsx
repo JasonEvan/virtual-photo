@@ -7,8 +7,69 @@ import Image from "next/image";
 interface EventDetail {
   heroImage?: string | null;
   frameImage?: string | null;
+  frameImage11?: string | null;
+  frameImage34?: string | null;
+  frameImage169?: string | null;
   maxPhotos?: number;
   numGuests?: number | null;
+}
+
+interface DropzoneColProps {
+  label: string;
+  icon: string;
+  hint: string;
+  aspectClass: string;
+  previewUrl: string | null;
+  onFile: (file: File) => void;
+}
+
+function DropzoneCol({
+  label,
+  icon,
+  hint,
+  aspectClass,
+  previewUrl,
+  onFile,
+}: DropzoneColProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    onFile(file);
+  };
+
+  return (
+    <div className="flex flex-col items-center w-full">
+      <div className="text-[11px] font-semibold text-text-primary mb-1.5 text-center">
+        {label}
+      </div>
+      <label
+        className={`w-full border-[1.5px] border-dashed border-accent-light bg-accent-surface rounded-xl cursor-pointer hover:border-accent hover:bg-accent-hover transition-colors relative overflow-hidden flex flex-col items-center justify-center p-3 text-center ${aspectClass}`}
+      >
+        {previewUrl ? (
+          <Image src={previewUrl} alt="" fill className="object-cover" />
+        ) : (
+          <>
+            <i className={`ti ${icon} text-[18px] text-accent mb-1`} />
+            <div className="text-[10px] text-text-on-accent font-medium leading-tight">
+              Unggah
+            </div>
+            <div className="text-[8px] text-text-on-accent-muted mt-0.5 scale-90 shrink-0">
+              {hint}
+            </div>
+          </>
+        )}
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleChange}
+        />
+      </label>
+    </div>
+  );
 }
 
 interface Event {
@@ -96,8 +157,14 @@ export default function EventDetailPage() {
   const [heroFile, setHeroFile] = useState<File | null>(null);
   const [heroPreview, setHeroPreview] = useState<string | null>(null);
 
-  const [frameFile, setFrameFile] = useState<File | null>(null);
-  const [framePreview, setFramePreview] = useState<string | null>(null);
+  const [frame11File, setFrame11File] = useState<File | null>(null);
+  const [frame11Preview, setFrame11Preview] = useState<string | null>(null);
+
+  const [frame34File, setFrame34File] = useState<File | null>(null);
+  const [frame34Preview, setFrame34Preview] = useState<string | null>(null);
+
+  const [frame169File, setFrame169File] = useState<File | null>(null);
+  const [frame169Preview, setFrame169Preview] = useState<string | null>(null);
 
   const [maxPhotos, setMaxPhotos] = useState(2);
   const [numGuests, setNumGuests] = useState<number | "">("");
@@ -122,7 +189,9 @@ export default function EventDetailPage() {
       if (!cancelled) {
         setEvent(data);
         setHeroPreview(data.detail?.heroImage ?? null);
-        setFramePreview(data.detail?.frameImage ?? null);
+        setFrame11Preview(data.detail?.frameImage11 ?? null);
+        setFrame34Preview(data.detail?.frameImage34 ?? null);
+        setFrame169Preview(data.detail?.frameImage169 ?? null);
         setMaxPhotos(data.detail?.maxPhotos ?? 2);
         setNumGuests(data.detail?.numGuests ?? "");
         setLoading(false);
@@ -138,9 +207,19 @@ export default function EventDetailPage() {
     setHeroPreview(URL.createObjectURL(file));
   };
 
-  const handleFrameFile = (file: File) => {
-    setFrameFile(file);
-    setFramePreview(URL.createObjectURL(file));
+  const handleFrame11File = (file: File) => {
+    setFrame11File(file);
+    setFrame11Preview(URL.createObjectURL(file));
+  };
+
+  const handleFrame34File = (file: File) => {
+    setFrame34File(file);
+    setFrame34Preview(URL.createObjectURL(file));
+  };
+
+  const handleFrame169File = (file: File) => {
+    setFrame169File(file);
+    setFrame169Preview(URL.createObjectURL(file));
   };
 
   const handleSaveNumGuests = async () => {
@@ -181,7 +260,9 @@ export default function EventDetailPage() {
     setSaving(true);
     const formData = new FormData();
     if (heroFile) formData.append("heroImage", heroFile);
-    if (frameFile) formData.append("frameImage", frameFile);
+    if (frame11File) formData.append("frameImage11", frame11File);
+    if (frame34File) formData.append("frameImage34", frame34File);
+    if (frame169File) formData.append("frameImage169", frame169File);
     formData.append("maxPhotos", String(maxPhotos));
 
     const res = await fetch(`/api/events/slug/${slug}`, {
@@ -193,10 +274,14 @@ export default function EventDetailPage() {
       const updated = await res.json();
       setEvent(updated);
       setHeroPreview(updated.detail?.heroImage ?? null);
-      setFramePreview(updated.detail?.frameImage ?? null);
+      setFrame11Preview(updated.detail?.frameImage11 ?? null);
+      setFrame34Preview(updated.detail?.frameImage34 ?? null);
+      setFrame169Preview(updated.detail?.frameImage169 ?? null);
       setMaxPhotos(updated.detail?.maxPhotos ?? 2);
       setHeroFile(null);
-      setFrameFile(null);
+      setFrame11File(null);
+      setFrame34File(null);
+      setFrame169File(null);
       showToast("Perubahan disimpan");
     } else {
       showToast("Gagal menyimpan");
@@ -244,20 +329,40 @@ export default function EventDetailPage() {
           }}
         />
 
-        <Dropzone
-          label="Template frame polaroid"
-          icon="ti-frame"
-          description="Bingkai dekoratif yang membungkus hasil foto tamu."
-          hint="PNG transparan, rasio 3:4"
-          aspectClass="aspect-[3/4]"
-          maxWidthClass="max-w-[220px] mx-auto"
-          previewUrl={framePreview}
-          onFile={handleFrameFile}
-          onReset={() => {
-            setFrameFile(null);
-            setFramePreview(event.detail?.frameImage ?? null);
-          }}
-        />
+        <div className="bg-surface border border-border rounded-[14px] p-5 mb-5">
+          <div className="text-[14.5px] font-semibold text-text-primary mb-0.5">
+            Template frame polaroid
+          </div>
+          <div className="text-xs text-text-muted mb-4 font-normal">
+            Bingkai dekoratif transparan (PNG) untuk membungkus foto tamu.
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <DropzoneCol
+              label="Rasio 1:1"
+              icon="ti-frame"
+              hint="PNG, 1:1"
+              aspectClass="aspect-square"
+              previewUrl={frame11Preview}
+              onFile={handleFrame11File}
+            />
+            <DropzoneCol
+              label="Rasio 3:4"
+              icon="ti-frame"
+              hint="PNG, 3:4"
+              aspectClass="aspect-[3/4]"
+              previewUrl={frame34Preview}
+              onFile={handleFrame34File}
+            />
+            <DropzoneCol
+              label="Rasio 16:9"
+              icon="ti-frame"
+              hint="PNG, 16:9"
+              aspectClass="aspect-[9/16]"
+              previewUrl={frame169Preview}
+              onFile={handleFrame169File}
+            />
+          </div>
+        </div>
 
         <div className="bg-surface border border-border rounded-[14px] p-5 mb-5">
           <div className="text-[14.5px] font-semibold text-text-primary mb-0.5">

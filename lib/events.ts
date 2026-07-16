@@ -78,6 +78,9 @@ export async function upsertEventDetail(
   data: {
     heroImage?: string | null;
     frameImage?: string | null;
+    frameImage11?: string | null;
+    frameImage34?: string | null;
+    frameImage169?: string | null;
     maxPhotos?: number;
     numGuests?: number | null;
   },

@@ -62,10 +62,16 @@ export async function PUT(request: Request, { params }: RouteContext) {
   const formData = await request.formData();
   const heroFile = formData.get("heroImage") as File | null;
   const frameFile = formData.get("frameImage") as File | null;
+  const frame11File = formData.get("frameImage11") as File | null;
+  const frame34File = formData.get("frameImage34") as File | null;
+  const frame169File = formData.get("frameImage169") as File | null;
   const maxPhotosStr = formData.get("maxPhotos") as string | null;
 
   let heroUrl: string | null = event.detail?.heroImage ?? null;
   let frameUrl: string | null = event.detail?.frameImage ?? null;
+  let frame11Url: string | null = event.detail?.frameImage11 ?? null;
+  let frame34Url: string | null = event.detail?.frameImage34 ?? null;
+  let frame169Url: string | null = event.detail?.frameImage169 ?? null;
 
   if (heroFile && heroFile.size > 0) {
     heroUrl = await uploadFile(heroFile, event.id, "hero", event.detail?.heroImage);
@@ -73,12 +79,24 @@ export async function PUT(request: Request, { params }: RouteContext) {
   if (frameFile && frameFile.size > 0) {
     frameUrl = await uploadFile(frameFile, event.id, "frame", event.detail?.frameImage);
   }
+  if (frame11File && frame11File.size > 0) {
+    frame11Url = await uploadFile(frame11File, event.id, "frame11", event.detail?.frameImage11);
+  }
+  if (frame34File && frame34File.size > 0) {
+    frame34Url = await uploadFile(frame34File, event.id, "frame34", event.detail?.frameImage34);
+  }
+  if (frame169File && frame169File.size > 0) {
+    frame169Url = await uploadFile(frame169File, event.id, "frame169", event.detail?.frameImage169);
+  }
 
   const maxPhotos = maxPhotosStr ? parseInt(maxPhotosStr, 10) : event.detail?.maxPhotos ?? 2;
 
   const detail = await upsertEventDetail(event.id, {
     heroImage: heroUrl,
     frameImage: frameUrl,
+    frameImage11: frame11Url,
+    frameImage34: frame34Url,
+    frameImage169: frame169Url,
     maxPhotos,
   });
 

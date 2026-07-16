@@ -37,7 +37,9 @@ export const eventDetails = pgTable("event_details", {
     .references(() => events.id, { onDelete: "cascade" }),
   heroImage: text("hero_image"),
   frameImage: text("frame_image"),
-
+  frameImage11: text("frame_image_11"),
+  frameImage34: text("frame_image_34"),
+  frameImage169: text("frame_image_169"),
   maxPhotos: integer("max_photos").default(2).notNull(),
   numGuests: integer("num_guests"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
