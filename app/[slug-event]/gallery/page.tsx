@@ -80,29 +80,32 @@ export default function GalleryPage() {
     };
   }, [event]);
 
-  const handleDownload = useCallback(async (photoId: string, guestName: string) => {
-    if (downloading) return;
-    setDownloading(true);
-    try {
-      const res = await fetch(`/api/photos/${photoId}/download`);
-      if (!res.ok) throw new Error("Failed to download ZIP");
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      const safeName = guestName.replace(/[^a-zA-Z0-9]/g, "_") || "guest";
-      link.download = `greeting-${safeName}.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error(err);
-      alert("Gagal mengunduh ZIP.");
-    } finally {
-      setDownloading(false);
-    }
-  }, [downloading]);
+  const handleDownload = useCallback(
+    async (photoId: string, guestName: string) => {
+      if (downloading) return;
+      setDownloading(true);
+      try {
+        const res = await fetch(`/api/photos/${photoId}/download`);
+        if (!res.ok) throw new Error("Failed to download ZIP");
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        const safeName = guestName.replace(/[^a-zA-Z0-9]/g, "_") || "guest";
+        link.download = `greeting-${safeName}.zip`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error(err);
+        alert("Gagal mengunduh ZIP.");
+      } finally {
+        setDownloading(false);
+      }
+    },
+    [downloading],
+  );
 
   if (loading) {
     return (
@@ -123,7 +126,7 @@ export default function GalleryPage() {
   return (
     <div className="min-h-screen bg-background flex justify-center min-[403px]:px-3 min-[403px]:py-8 sm:py-12">
       {/* Phone frame */}
-      <div className="w-full max-w-93.75 bg-[#F7F3ED] min-[403px]:rounded-[36px] min-[403px]:shadow-[0_20px_60px_rgba(28,24,21,0.25),0_0_0_8px_#1C1815] overflow-hidden flex flex-col min-h-dvh sm:min-h-dvh relative">
+      <div className="w-full max-w-93.75 bg-[#F7F3ED] min-[403px]:rounded-[36px] min-[403px]:shadow-[0_20px_60px_rgba(28,24,21,0.25),0_0_0_8px_#1C1815] overflow-hidden flex flex-col min-h-dvh sm:min-h-dvh min-[403px]:h-203 min-[403px]:max-h-[90vh] min-[403px]:min-h-0 relative">
         {/* Topbar */}
         <div className="flex items-center gap-3 px-5 pt-4.5 pb-3.5 border-b border-border shrink-0">
           <Link
@@ -256,7 +259,9 @@ export default function GalleryPage() {
                 <button
                   type="button"
                   disabled={downloading}
-                  onClick={() => handleDownload(selectedPhoto.id!, selectedPhoto.guestName)}
+                  onClick={() =>
+                    handleDownload(selectedPhoto.id!, selectedPhoto.guestName)
+                  }
                   className="flex-1 py-4 text-[13.5px] font-semibold text-accent active:bg-accent-hover transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer border-l border-border/60"
                 >
                   {downloading ? (
