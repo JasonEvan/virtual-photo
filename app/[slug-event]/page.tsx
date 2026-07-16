@@ -174,6 +174,16 @@ export default function GuestPage() {
       const data = await res.json();
       if (!cancelled) {
         setEvent(data);
+        const detail = data.detail;
+        if (detail) {
+          if (detail.frameImage34 || detail.frameImage) {
+            setSelectedRatio("3:4");
+          } else if (detail.frameImage11) {
+            setSelectedRatio("1:1");
+          } else if (detail.frameImage169) {
+            setSelectedRatio("16:9");
+          }
+        }
         setLoading(false);
       }
     })();
@@ -862,26 +872,44 @@ export default function GuestPage() {
                   Pilih Rasio Frame
                 </div>
                 <div className="flex gap-1.5 bg-[#EFEBE4] p-1.5 rounded-xl border border-border/40">
-                  {(
-                    [
-                      { label: "1:1 Square", val: "1:1" },
-                      { label: "3:4 Portrait", val: "3:4" },
-                      { label: "16:9 Portrait", val: "16:9" },
-                    ] as const
-                  ).map((item) => (
-                    <button
-                      key={item.val}
-                      type="button"
-                      onClick={() => setSelectedRatio(item.val)}
-                      className={`flex-1 py-2 rounded-lg text-[12px] font-semibold transition-all cursor-pointer ${
-                        selectedRatio === item.val
-                          ? "bg-dark text-dark-text shadow-sm"
-                          : "text-text-muted hover:text-text-primary bg-transparent"
-                      }`}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
+                  {(() => {
+                    const hasAnyFrame = !!(
+                      event?.detail?.frameImage11 ||
+                      event?.detail?.frameImage34 ||
+                      event?.detail?.frameImage169 ||
+                      event?.detail?.frameImage
+                    );
+
+                    return (
+                      [
+                        { label: "1:1 Square", val: "1:1" },
+                        { label: "3:4 Portrait", val: "3:4" },
+                        { label: "16:9 Portrait", val: "16:9" },
+                      ] as const
+                    ).map((item) => {
+                      const isAvailable = !hasAnyFrame || (
+                        item.val === "1:1" ? !!event?.detail?.frameImage11 :
+                        item.val === "16:9" ? !!event?.detail?.frameImage169 :
+                        (!!event?.detail?.frameImage34 || !!event?.detail?.frameImage)
+                      );
+
+                      return (
+                        <button
+                          key={item.val}
+                          type="button"
+                          disabled={!isAvailable}
+                          onClick={() => setSelectedRatio(item.val)}
+                          className={`flex-1 py-2 rounded-lg text-[12px] font-semibold transition-all ${
+                            selectedRatio === item.val
+                              ? "bg-dark text-dark-text shadow-sm"
+                              : "text-text-muted hover:text-text-primary bg-transparent"
+                          } disabled:opacity-45 disabled:cursor-not-allowed disabled:hover:text-text-muted`}
+                        >
+                          {item.label}
+                        </button>
+                      );
+                    });
+                  })()}
                 </div>
               </div>
 
