@@ -926,7 +926,7 @@ export default function GuestPage() {
               <button
                 type="button"
                 onClick={() => navigateTo("camera")}
-                className="w-full border border-border-subtle rounded-xl py-3.75 text-[14.5px] font-medium text-text-primary flex items-center justify-center gap-2 mt-4 active:bg-accent-hover transition-colors"
+                className="w-full border border-border-subtle rounded-xl py-3.75 text-[14.5px] font-medium text-text-primary flex items-center justify-center gap-2 mt-4 active:bg-accent-hover transition-colors shrink-0"
               >
                 <i className="ti ti-camera" />
                 Ambil ulang foto
@@ -934,7 +934,7 @@ export default function GuestPage() {
 
               {/* Filter toggle */}
               {(!event?.packet || event.packet.hasFilter) && (
-                <div className="flex gap-2 mt-5 mb-5">
+                <div className="flex gap-2 mt-5 mb-5 shrink-0">
                   {(["Natural", "Black & White"] as const).map((f) => (
                     <button
                       key={f}
@@ -959,22 +959,22 @@ export default function GuestPage() {
                 value={guestName}
                 onChange={(e) => setGuestName(e.target.value)}
                 required
-                className="w-full border border-border rounded-xl px-3.5 py-3 text-[13.5px] font-inherit bg-surface text-text-primary placeholder:text-[#A79B87] mb-3 mt-1"
+                className="w-full border border-border rounded-xl px-3.5 py-3 text-[13.5px] font-inherit bg-surface text-text-primary placeholder:text-[#A79B87] mb-3 mt-1 shrink-0"
               />
 
               {/* Notes */}
               <textarea
-                rows={2}
+                rows={4}
                 placeholder="Tulis ucapan kamu (wajib)"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 required
-                className="w-full border border-border rounded-xl px-3.5 py-3 text-[13.5px] font-inherit resize-none bg-surface text-text-primary placeholder:text-[#A79B87] mb-3"
+                className="w-full border border-border rounded-xl px-3.5 py-3 text-[13.5px] font-inherit resize-none bg-surface text-text-primary placeholder:text-[#A79B87] mb-3 shrink-0"
               />
 
               {/* Voice note row */}
               {(!event?.packet || event.packet.hasVn) && (
-                <div className="flex items-center gap-3 border border-border rounded-xl px-3.5 py-3 bg-surface mb-3">
+                <div className="flex items-center gap-3 border border-border rounded-xl px-3.5 py-3 bg-surface mb-3 shrink-0">
                   <button
                     type="button"
                     onClick={
@@ -1032,7 +1032,7 @@ export default function GuestPage() {
                 type="button"
                 onClick={savePhoto}
                 disabled={saving || !guestName.trim() || !notes.trim()}
-                className="w-full bg-dark text-dark-text rounded-xl py-4 text-[15px] font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50"
+                className="w-full bg-dark text-dark-text rounded-xl py-4 text-[15px] font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50 shrink-0"
               >
                 <i className="ti ti-check" />
                 {saving ? "Menyimpan..." : "Simpan foto"}
@@ -1040,7 +1040,7 @@ export default function GuestPage() {
               <button
                 type="button"
                 onClick={downloadPhoto}
-                className="w-full border border-border-subtle rounded-xl py-3.75 text-[14.5px] font-medium text-text-primary flex items-center justify-center gap-2 mt-2.5 active:bg-accent-hover transition-colors"
+                className="w-full border border-border-subtle rounded-xl py-3.75 text-[14.5px] font-medium text-text-primary flex items-center justify-center gap-2 mt-2.5 active:bg-accent-hover transition-colors shrink-0"
               >
                 <i className="ti ti-download" />
                 Unduh ke hp
