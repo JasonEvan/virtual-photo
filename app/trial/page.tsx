@@ -80,6 +80,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 export default function TrialPage() {
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [guestValid, setGuestValid] = useState<boolean | null>(null);
   const [screen, setScreen] = useState<Screen>("landing");
 
@@ -176,6 +177,7 @@ export default function TrialPage() {
       setGuestValid(true);
       setChancesLeft(999);
       setLoading(false);
+      setShowWelcomeModal(true);
     }, 0);
   }, []);
 
@@ -1153,6 +1155,47 @@ export default function TrialPage() {
         </div>
       )}
 
+      {/* iOS-Style Welcome Dialog */}
+      {showWelcomeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-xs animate-[fadeIn_0.2s_ease]">
+          <div className="w-full max-w-67.5 bg-white/90 backdrop-blur-2xl rounded-[14px] text-center shadow-[0_10px_30px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col font-sans select-none animate-[iosAlertIn_0.28s_cubic-bezier(0.25,1,0.5,1)]">
+            <div className="px-4.5 pt-5 pb-4.5">
+              <h3 className="text-[17px] font-semibold text-[#030303] leading-tight">
+                Welcome to Trial
+              </h3>
+              <p className="text-[13px] text-[#030303] mt-2 leading-[1.4] whitespace-pre-line font-normal">
+                Virtual Photobooth by Kiranya Bahagia!{"\n\n"}
+                Halaman ini hanya untuk 1 kali trial. Foto yang diambil tidak
+                akan disimpan. Desain dapat dicustom sesuai tema acaramu.
+                Nikmati semua fitur yang tersedia ya!{"\n\n"}
+                <strong>Cocok? Yuk, langsung booking.</strong>
+              </p>
+            </div>
+            <div className="flex flex-col border-t border-[#3F3F3F]/15">
+              <button
+                type="button"
+                onClick={() => {
+                  window.open(
+                    "https://wa.me/6288905844274?text=Halo%20Kiranya%20Bahagia,%20saya%20ingin%20booking%20Virtual%20Photobooth",
+                    "_blank",
+                  );
+                }}
+                className="w-full py-3 text-[17px] text-[#007AFF] font-normal hover:bg-[#EAEAEA]/60 active:bg-[#EAEAEA] border-none cursor-pointer transition-colors outline-none"
+              >
+                Booking Sekarang
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowWelcomeModal(false)}
+                className="w-full py-3 text-[17px] text-[#007AFF] font-semibold hover:bg-[#EAEAEA]/60 active:bg-[#EAEAEA] border-t border-[#3F3F3F]/15 cursor-pointer transition-colors outline-none"
+              >
+                Mulai Trial
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Global fadeIn keyframe */}
       <style>{`
         @keyframes fadeIn {
@@ -1166,6 +1209,10 @@ export default function TrialPage() {
         @keyframes modalIn {
           from { opacity: 0; transform: scale(0.94) translateY(8px); }
           to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes iosAlertIn {
+          from { opacity: 0; transform: scale(1.18); }
+          to { opacity: 1; transform: scale(1); }
         }
       `}</style>
     </div>
