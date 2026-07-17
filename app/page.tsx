@@ -43,7 +43,7 @@ export default function Home() {
         </h1>
 
         <p className="text-base md:text-lg text-[#6B6357] max-w-xl mb-10 leading-relaxed">
-          A premium, zero-install guest photobooth with AI green screen removal,
+          A premium, zero-install guest photobooth with green screen removal,
           custom voice messages, and automated GIF animations.
         </p>
 
