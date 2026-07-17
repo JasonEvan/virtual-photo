@@ -170,10 +170,10 @@ export default function TrialPage() {
         startDate: new Date().toISOString(),
         endDate: new Date().toISOString(),
         detail: {
-          heroImage: null,
-          frameImage11: null,
-          frameImage34: null,
-          frameImage169: null,
+          heroImage: "/trial/Kiranya_Bahagia-Hero.png",
+          frameImage11: "/trial/Kiranya_Bahagia-Frame_1_1.png",
+          frameImage34: "/trial/Kiranya_Bahagia-Frame_3_4.png",
+          frameImage169: "/trial/Kiranya_Bahagia-Frame_16_9.png",
           maxPhotos: 999,
         },
       });
