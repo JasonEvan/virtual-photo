@@ -35,6 +35,8 @@ interface Event {
 
 type Screen = "landing" | "camera" | "result" | "done";
 
+
+
 function removeGreenScreen(imageUrl: string): Promise<string> {
   return new Promise((resolve) => {
     const img = new window.Image();
@@ -81,6 +83,7 @@ export default function TrialPage() {
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+
   const [guestValid, setGuestValid] = useState<boolean | null>(null);
   const [screen, setScreen] = useState<Screen>("landing");
 
@@ -191,6 +194,8 @@ export default function TrialPage() {
       console.error("Failed to load trial photos:", err);
     }
   }, []);
+
+
 
   // Fetch guest photos on mount
   useEffect(() => {
@@ -1037,6 +1042,8 @@ export default function TrialPage() {
               Pengantin bisa lihat foto ini selama 2 minggu, setelah itu
               otomatis terhapus.
             </div>
+
+
             <button
               type="button"
               onClick={() => {
@@ -1048,7 +1055,7 @@ export default function TrialPage() {
                 setRecordingDuration(0);
                 navigateTo("landing");
               }}
-              className="w-full bg-dark text-dark-text rounded-xl py-4 text-[15px] font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+              className="w-full bg-dark text-dark-text rounded-xl py-4 text-[15px] font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform shrink-0"
             >
               <i className="ti ti-arrow-left" />
               Kembali ke halaman utama
@@ -1056,6 +1063,8 @@ export default function TrialPage() {
           </div>
         )}
       </div>
+
+
 
       {/* Photo detail modal */}
       {selectedPhoto && (

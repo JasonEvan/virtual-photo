@@ -36,6 +36,7 @@ interface Event {
 
 type Screen = "landing" | "camera" | "result" | "done";
 
+
 function removeGreenScreen(imageUrl: string): Promise<string> {
   return new Promise((resolve) => {
     const img = new window.Image();
@@ -140,6 +141,42 @@ export default function GuestPage() {
   } | null>(null);
 
   const [downloading, setDownloading] = useState(false);
+  const [sessionPhotos, setSessionPhotos] = useState<
+    {
+      id: string;
+      pictureUrl: string;
+      guestName: string;
+      notes: string | null;
+      voiceUrl?: string | null;
+    }[]
+  >([]);
+
+  // Load sessionPhotos from localStorage when guestId changes
+  useEffect(() => {
+    if (!guestId) return;
+    setTimeout(() => {
+      try {
+        const stored = localStorage.getItem(`vphoto_session_photos_${guestId}`);
+        if (stored) {
+          setSessionPhotos(JSON.parse(stored));
+        } else {
+          setSessionPhotos([]);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }, 0);
+  }, [guestId]);
+
+  // Update localStorage whenever sessionPhotos or guestId changes
+  useEffect(() => {
+    if (!guestId) return;
+    try {
+      localStorage.setItem(`vphoto_session_photos_${guestId}`, JSON.stringify(sessionPhotos));
+    } catch (err) {
+      console.error(err);
+    }
+  }, [sessionPhotos, guestId]);
 
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(
     null,
@@ -231,6 +268,8 @@ export default function GuestPage() {
       console.error("Failed to fetch photos:", err);
     }
   }, [event]);
+
+
 
   // Fetch guest photos
   useEffect(() => {
@@ -559,6 +598,12 @@ export default function GuestPage() {
         body: formData,
       });
       if (saveRes.ok) {
+        try {
+          const savedPhoto = await saveRes.json();
+          setSessionPhotos((prev) => [...prev, savedPhoto]);
+        } catch (err) {
+          console.error("Failed to parse saved photo:", err);
+        }
         setChancesLeft((c) => (c !== null ? c - 1 : c));
         await fetchPhotos();
         navigateTo("done");
@@ -1063,6 +1108,8 @@ export default function GuestPage() {
               Pengantin bisa lihat foto ini selama 2 minggu, setelah itu
               otomatis terhapus.
             </div>
+
+
             <button
               type="button"
               onClick={() => {
@@ -1074,7 +1121,7 @@ export default function GuestPage() {
                 setRecordingDuration(0);
                 navigateTo("landing");
               }}
-              className="w-full bg-dark text-dark-text rounded-xl py-4 text-[15px] font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+              className="w-full bg-dark text-dark-text rounded-xl py-4 text-[15px] font-medium flex items-center justify-center gap-2 active:scale-[0.98] transition-transform shrink-0"
             >
               <i className="ti ti-arrow-left" />
               Kembali ke halaman utama
@@ -1082,6 +1129,8 @@ export default function GuestPage() {
           </div>
         )}
       </div>
+
+
 
       {/* Photo detail modal */}
       {selectedPhoto && (

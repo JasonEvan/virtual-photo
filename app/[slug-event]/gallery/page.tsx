@@ -19,6 +19,21 @@ interface GuestPhoto {
   voiceUrl?: string | null;
 }
 
+interface WindowWithGifshot extends Window {
+  gifshot?: {
+    createGIF: (
+      options: {
+        images: string[];
+        interval: number;
+        gifWidth: number;
+        gifHeight: number;
+        numWorkers: number;
+      },
+      callback: (obj: { error: boolean; image: string; errorMsg?: string }) => void
+    ) => void;
+  };
+}
+
 export default function GalleryPage() {
   const { "slug-event": slug } = useParams();
   const searchParams = useSearchParams();
@@ -36,6 +51,104 @@ export default function GalleryPage() {
 
   const [downloading, setDownloading] = useState(false);
   const [downloadingAll, setDownloadingAll] = useState(false);
+
+  const [showGifModal, setShowGifModal] = useState(false);
+  const [checkedPhotos, setCheckedPhotos] = useState<Record<string, boolean>>({});
+  const [gifSpeed, setGifSpeed] = useState<0.3 | 0.6 | 1.0>(0.6);
+  const [gifUrl, setGifUrl] = useState<string | null>(null);
+  const [generatingGif, setGeneratingGif] = useState(false);
+  const [sessionPhotos, setSessionPhotos] = useState<
+    {
+      id: string;
+      pictureUrl: string;
+      guestName: string;
+      notes: string | null;
+      voiceUrl?: string | null;
+    }[]
+  >([]);
+  const [gifshotLoaded, setGifshotLoaded] = useState(false);
+
+  // Load sessionPhotos from localStorage when guestId changes
+  useEffect(() => {
+    if (!guestId) return;
+    setTimeout(() => {
+      try {
+        const stored = localStorage.getItem(`vphoto_session_photos_${guestId}`);
+        if (stored) {
+          setSessionPhotos(JSON.parse(stored));
+        } else {
+          setSessionPhotos([]);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }, 0);
+  }, [guestId]);
+
+  // Update localStorage whenever sessionPhotos or guestId changes
+  useEffect(() => {
+    if (!guestId) return;
+    try {
+      localStorage.setItem(`vphoto_session_photos_${guestId}`, JSON.stringify(sessionPhotos));
+    } catch (err) {
+      console.error(err);
+    }
+  }, [sessionPhotos, guestId]);
+
+  // Load gifshot script with fallback
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const w = window as unknown as WindowWithGifshot;
+      if (w.gifshot) {
+        setTimeout(() => setGifshotLoaded(true), 0);
+        return;
+      }
+
+      const existing = document.querySelector('script[src*="gifshot"]');
+      if (existing) {
+        existing.addEventListener("load", () => {
+          setTimeout(() => setGifshotLoaded(true), 0);
+        });
+        setTimeout(() => {
+          if (w.gifshot) {
+            setGifshotLoaded(true);
+          }
+        }, 1500);
+        return;
+      }
+
+      const loadScript = (src: string, onFallback: () => void) => {
+        const script = document.createElement("script");
+        script.src = src;
+        script.async = true;
+        script.onload = () => {
+          setTimeout(() => setGifshotLoaded(true), 0);
+        };
+        script.onerror = () => {
+          script.remove();
+          onFallback();
+        };
+        document.body.appendChild(script);
+      };
+
+      loadScript(
+        "https://cdnjs.cloudflare.com/ajax/libs/gifshot/0.5.8/gifshot.min.js",
+        () => {
+          loadScript(
+            "https://unpkg.com/gifshot@0.5.8/build/gifshot.min.js",
+            () => {
+              loadScript(
+                "https://cdn.jsdelivr.net/npm/gifshot@0.5.8/build/gifshot.min.js",
+                () => {
+                  console.error("All GIF CDNs failed to load.");
+                }
+              );
+            }
+          );
+        }
+      );
+    }
+  }, []);
 
   // Fetch Event
   useEffect(() => {
@@ -139,6 +252,106 @@ export default function GalleryPage() {
     }
   }, [event, guestId]);
 
+  const preprocessFramesWithWatermark = useCallback(
+    async (
+      photosArray: typeof sessionPhotos,
+      eventLabel: string,
+    ): Promise<string[]> => {
+      return Promise.all(
+        photosArray.map(async (p) => {
+          return new Promise<string>((resolve) => {
+            const img = new window.Image();
+            img.crossOrigin = "anonymous";
+            img.onload = () => {
+              const canvas = document.createElement("canvas");
+              canvas.width = img.naturalWidth || 600;
+              canvas.height = img.naturalHeight || 800;
+              const ctx = canvas.getContext("2d");
+              if (ctx) {
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                ctx.save();
+                ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+                const barHeight = Math.max(30, Math.round(canvas.height * 0.05));
+                ctx.fillRect(
+                  0,
+                  canvas.height - barHeight,
+                  canvas.width,
+                  barHeight,
+                );
+
+                ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+                const fontSize = Math.max(
+                  11,
+                  Math.round(canvas.height * 0.018),
+                );
+                ctx.font = `600 ${fontSize}px sans-serif`;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(
+                  eventLabel || "Kiranya Bahagia Virtual Photobooth",
+                  canvas.width / 2,
+                  canvas.height - barHeight / 2,
+                );
+                ctx.restore();
+              }
+              resolve(canvas.toDataURL("image/jpeg", 0.85));
+            };
+            img.onerror = () => {
+              resolve(p.pictureUrl);
+            };
+            img.src = p.pictureUrl;
+          });
+        }),
+      );
+    },
+    [],
+  );
+
+  const generateGif = useCallback(async () => {
+    const selected = sessionPhotos.filter((p) => p.id && checkedPhotos[p.id]);
+    if (selected.length < 2) {
+      alert("Pilih minimal 2 foto untuk membuat GIF.");
+      return;
+    }
+    setGeneratingGif(true);
+    setGifUrl(null);
+
+    try {
+      const frames = await preprocessFramesWithWatermark(selected, event?.name || "Kiranya Bahagia");
+
+      const w = window as unknown as WindowWithGifshot;
+      if (w.gifshot) {
+        w.gifshot.createGIF(
+          {
+            images: frames,
+            interval: gifSpeed,
+            gifWidth: 300,
+            gifHeight: 400,
+            numWorkers: 2,
+          },
+          (obj: { error: boolean; image: string; errorMsg?: string }) => {
+            if (obj.error) {
+              console.error("Gifshot error:", obj.errorMsg);
+              alert("Gagal memproses GIF.");
+              setGeneratingGif(false);
+            } else {
+              setGifUrl(obj.image);
+              setGeneratingGif(false);
+            }
+          }
+        );
+      } else {
+        alert("Pustaka pembuat GIF belum dimuat. Silakan coba lagi.");
+        setGeneratingGif(false);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Gagal membuat GIF.");
+      setGeneratingGif(false);
+    }
+  }, [sessionPhotos, checkedPhotos, gifSpeed, event, preprocessFramesWithWatermark]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -233,6 +446,28 @@ export default function GalleryPage() {
             </div>
           )}
         </div>
+
+        {/* Bottom bar for GIF creation */}
+        {sessionPhotos.length >= 2 && (
+          <div className="p-4 bg-[#F7F3ED] border-t border-border shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setGifUrl(null);
+                const initialChecked: Record<string, boolean> = {};
+                sessionPhotos.forEach((p) => {
+                  if (p.id) initialChecked[p.id] = true;
+                });
+                setCheckedPhotos(initialChecked);
+                setShowGifModal(true);
+              }}
+              className="w-full bg-[#1C1815] text-white rounded-xl py-3 text-[13px] font-semibold active:scale-[0.98] transition-transform flex items-center justify-center gap-1.5 cursor-pointer shadow-md shrink-0"
+            >
+              <span className="text-[9px] font-bold border border-current rounded px-0.8 scale-90 select-none leading-none mr-0.5">GIF</span>
+              Buat GIF Animasi ({sessionPhotos.length} foto)
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Photo detail modal */}
@@ -318,6 +553,179 @@ export default function GalleryPage() {
                       Unduh ZIP
                     </>
                   )}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* GIF Maker Modal */}
+      {showGifModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-5 bg-[rgba(28,24,21,0.75)] backdrop-blur-sm animate-[fadeIn_0.2s_ease]">
+          <div className="w-full max-w-85 bg-[#F7F3ED] rounded-[28px] overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.45),0_0_0_1px_rgba(255,255,255,0.06)_inset] animate-[modalIn_0.3s_ease] flex flex-col max-h-[85vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-border/40 shrink-0">
+              <h3 className="text-[15px] font-semibold text-text-primary">
+                Buat GIF Animasi
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowGifModal(false)}
+                className="w-7 h-7 rounded-full bg-accent-hover flex items-center justify-center border-none cursor-pointer text-text-primary"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Scrollable Container */}
+            <div className="flex-1 overflow-y-auto px-5 py-4 min-h-0 flex flex-col gap-5">
+              {/* Photo Selector Grid */}
+              <div className="flex flex-col gap-2 shrink-0">
+                <span className="text-[11px] font-semibold tracking-wider text-text-muted uppercase">
+                  Pilih Foto (Min. 2)
+                </span>
+                <div className="grid grid-cols-4 gap-2">
+                  {sessionPhotos.map((gp) => (
+                    <button
+                      key={gp.id}
+                      type="button"
+                      onClick={() => {
+                        if (gp.id) {
+                          setCheckedPhotos((prev) => ({
+                            ...prev,
+                            [gp.id!]: !prev[gp.id!],
+                          }));
+                          setGifUrl(null);
+                        }
+                      }}
+                      className={`relative aspect-square rounded-lg overflow-hidden border cursor-pointer active:scale-95 transition-all ${
+                        gp.id && checkedPhotos[gp.id]
+                          ? "border-accent ring-2 ring-accent/35"
+                          : "border-border opacity-65"
+                      }`}
+                    >
+                      <Image
+                        src={gp.pictureUrl}
+                        alt=""
+                        fill
+                        className="object-cover"
+                      />
+                      {gp.id && checkedPhotos[gp.id] && (
+                        <div className="absolute top-1 right-1 w-4.5 h-4.5 rounded-full bg-accent flex items-center justify-center shadow-xs">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className="w-2.5 h-2.5 text-white">
+                            <path d="M20 6 9 17l-5-5" />
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Speed Controller */}
+              <div className="flex flex-col gap-2 shrink-0">
+                <span className="text-[11px] font-semibold tracking-wider text-text-muted uppercase">
+                  Kecepatan Animasi
+                </span>
+                <div className="flex gap-2">
+                  {([
+                    { label: "🐢 Lambat", val: 1.0 },
+                    { label: "🚶 Sedang", val: 0.6 },
+                    { label: "⚡ Cepat", val: 0.3 },
+                  ] as const).map((opt) => (
+                    <button
+                      key={opt.val}
+                      type="button"
+                      onClick={() => {
+                        setGifSpeed(opt.val);
+                        setGifUrl(null);
+                      }}
+                      className={`flex-1 py-2.5 rounded-[10px] border text-[12px] font-medium transition-colors cursor-pointer ${
+                        gifSpeed === opt.val
+                          ? "bg-dark text-dark-text border-dark"
+                          : "border-border text-[#6B6357] hover:bg-accent-hover"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Preview area */}
+              <div className="flex flex-col gap-2 shrink-0 items-center">
+                <span className="text-[11px] font-semibold tracking-wider text-text-muted uppercase self-start">
+                  Pratinjau
+                </span>
+                <div className="w-48 aspect-square rounded-xl bg-accent-hover border border-border/40 overflow-hidden flex items-center justify-center relative">
+                  {generatingGif ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <svg className="w-6 h-6 animate-spin text-accent" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                      </svg>
+                      <span className="text-[11px] text-text-muted">
+                        Mengolah GIF...
+                      </span>
+                    </div>
+                  ) : gifUrl ? (
+                    <Image
+                      src={gifUrl}
+                      alt="GIF Preview"
+                      fill
+                      unoptimized
+                      className="object-contain"
+                    />
+                  ) : (
+                    <div className="text-center px-4">
+                      <p className="text-[12px] text-text-muted">
+                        Ketuk tombol di bawah untuk membuat pratinjau GIF
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="p-5 border-t border-border/40 shrink-0 flex flex-col gap-2">
+              {!gifUrl ? (
+                <button
+                  type="button"
+                  disabled={
+                    generatingGif ||
+                    !gifshotLoaded ||
+                    sessionPhotos.filter((p) => p.id && checkedPhotos[p.id])
+                      .length < 2
+                  }
+                  onClick={generateGif}
+                  className="w-full bg-dark text-dark-text rounded-xl py-3.5 text-[13.5px] font-semibold active:scale-[0.98] transition-transform disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 mr-0.5">
+                    <path d="m15 4-2 2M19 8l-2-2M20 3l-2.5 2.5M10.5 12.5 3 20M14.5 8.5 7 16" />
+                  </svg>
+                  {!gifshotLoaded ? "Memuat Pustaka..." : "Buat Pratinjau GIF"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const link = document.createElement("a");
+                    link.href = gifUrl;
+                    link.download = `greeting-gif-${Date.now()}.gif`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                  className="w-full bg-accent text-white rounded-xl py-3.5 text-[13.5px] font-semibold active:scale-[0.98] transition-transform flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 mr-0.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                  </svg>
+                  Unduh File GIF
                 </button>
               )}
             </div>

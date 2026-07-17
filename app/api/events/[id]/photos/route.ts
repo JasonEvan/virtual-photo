@@ -77,12 +77,27 @@ export async function POST(request: Request, { params }: RouteContext) {
     picturePath: pathName,
     guestName,
     notes,
-    voicePath: voiceBase64, // Save Base64 string directly in database
+    voicePath: voiceBase64,
   });
 
   if (guestId) {
     await decrementGuestChances(guestId);
   }
 
-  return NextResponse.json(row, { status: 201 });
+  const { data: picData } = storage
+    .from(BUCKET)
+    .getPublicUrl(row.picturePath);
+  let voiceUrl: string | null = null;
+  if (row.voicePath) {
+    if (row.voicePath.startsWith("data:")) {
+      voiceUrl = row.voicePath;
+    } else {
+      const { data: voiceData } = storage
+        .from(BUCKET)
+        .getPublicUrl(row.voicePath);
+      voiceUrl = voiceData.publicUrl;
+    }
+  }
+
+  return NextResponse.json({ ...row, pictureUrl: picData.publicUrl, voiceUrl }, { status: 201 });
 }
