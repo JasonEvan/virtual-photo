@@ -159,6 +159,8 @@ export default function TrialPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const galleryRef = useRef<HTMLDivElement>(null);
+  const [showScrollHint, setShowScrollHint] = useState(false);
 
   // Initialize trial session setup
   useEffect(() => {
@@ -203,6 +205,25 @@ export default function TrialPage() {
       fetchPhotos();
     }, 0);
   }, [fetchPhotos]);
+
+  // Show scroll hint when photos exist, hide when gallery is visible
+  useEffect(() => {
+    if (guestPhotos.length === 0) {
+      setShowScrollHint(false);
+      return;
+    }
+    setShowScrollHint(true);
+    const el = galleryRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) setShowScrollHint(false);
+      },
+      { threshold: 0.1 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [guestPhotos.length]);
 
   // Process frame images (chroma key green screen removal)
   useEffect(() => {
@@ -602,7 +623,7 @@ export default function TrialPage() {
         <canvas ref={canvasRef} className="hidden" />
 
         {screen === "landing" && (
-          <div className="flex flex-col flex-1 min-h-dvh sm:min-h-dvh animate-[fadeIn_0.35s_ease] overflow-y-auto">
+          <div className="flex flex-col flex-1 min-h-dvh sm:min-h-dvh animate-[fadeIn_0.35s_ease] overflow-y-auto relative">
             {/* Brand Banner */}
             <div className="relative w-full h-16 bg-[#F8F8F8] shrink-0 border-b border-[#EBE5D9]">
               <Image
@@ -653,7 +674,7 @@ export default function TrialPage() {
             <div className="px-6 py-5 shrink-0">
               {/* Guest photos gallery */}
               {guestPhotos.length > 0 && (
-                <div className="mt-6 pt-5 border-t border-border">
+                <div ref={galleryRef} className="mt-6 pt-5 border-t border-border">
                   <div className="text-[11px] tracking-[0.14em] uppercase text-text-muted font-medium mb-3">
                     Galeri foto tamu
                   </div>
@@ -698,6 +719,28 @@ export default function TrialPage() {
                 </div>
               )}
             </div>
+
+            {/* Sticky Scroll Down Indicator */}
+            {showScrollHint && (
+              <div className="absolute bottom-0 inset-x-0 z-10 pointer-events-none">
+                <div className="flex flex-col items-center gap-1 pb-4 pt-8 bg-gradient-to-t from-[#F7F3ED] via-[#F7F3ED]/80 to-transparent">
+                  <span className="text-[11px] font-medium text-[#A79B87] tracking-wide uppercase">
+                    Scroll untuk lihat galeri
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#A79B87] scroll-chevron" style={{ animationDelay: "0ms" }}>
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#A79B87] scroll-chevron" style={{ animationDelay: "150ms" }}>
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#A79B87] scroll-chevron" style={{ animationDelay: "300ms" }}>
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1219,6 +1262,13 @@ export default function TrialPage() {
         @keyframes iosAlertIn {
           from { opacity: 0; transform: scale(1.18); }
           to { opacity: 1; transform: scale(1); }
+        }
+        .scroll-chevron {
+          animation: scrollBounce 1.5s ease-in-out infinite;
+        }
+        @keyframes scrollBounce {
+          0%, 100% { transform: translateY(0); opacity: 0.3; }
+          50% { transform: translateY(5px); opacity: 1; }
         }
       `}</style>
     </div>
