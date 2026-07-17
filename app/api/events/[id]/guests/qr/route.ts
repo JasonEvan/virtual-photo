@@ -46,7 +46,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
     const url = `${baseUrl}/${event.slug}?guest=${guest.id}`;
     const qrBuffer = await QRCode.toBuffer(url, {
       type: "png",
-      width: 330,
+      width: 336,
       margin: 2,
     });
 
@@ -55,8 +55,8 @@ export async function GET(_request: Request, { params }: RouteContext) {
         .composite([
           {
             input: qrBuffer,
-            left: 658,
-            top: 217,
+            left: 655,
+            top: 215,
           },
         ])
         .toBuffer();
