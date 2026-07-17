@@ -1182,7 +1182,7 @@ export default function TrialPage() {
                 type="button"
                 onClick={() => {
                   window.open(
-                    "https://wa.me/6288905844274?text=Halo%20Kiranya%20Bahagia,%20saya%20ingin%20booking%20Virtual%20Photobooth",
+                    "https://wa.me/6288905844274?text=Halo%20Kiranya%20Bahagia!%F0%9F%92%97%0ASaya%20tertarik%20dengan%20Virtual%20Photobooth%20dan%20ingin%20booking%20untuk%20acara%20saya",
                     "_blank",
                   );
                 }}
