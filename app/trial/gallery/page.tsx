@@ -18,19 +18,20 @@ interface GuestPhoto {
   voiceUrl?: string | null;
 }
 
-interface WindowWithGifshot extends Window {
-  gifshot?: {
-    createGIF: (
-      options: {
-        images: string[];
-        interval: number;
-        gifWidth: number;
-        gifHeight: number;
-        numWorkers: number;
-      },
-      callback: (obj: { error: boolean; image: string; errorMsg?: string }) => void
-    ) => void;
-  };
+interface GIFInstance {
+  addFrame: (element: HTMLCanvasElement, options?: { delay: number; copy?: boolean }) => void;
+  on: (event: 'finished', callback: (blob: Blob) => void) => void;
+  render: () => void;
+}
+
+interface WindowWithGif extends Window {
+  GIF?: new (options: {
+    workers: number;
+    quality: number;
+    workerScript: string;
+    width?: number;
+    height?: number;
+  }) => GIFInstance;
 }
 
 export default function TrialGalleryPage() {
@@ -53,25 +54,25 @@ export default function TrialGalleryPage() {
   const [gifSpeed, setGifSpeed] = useState<0.3 | 0.6 | 1.0>(0.6);
   const [gifUrl, setGifUrl] = useState<string | null>(null);
   const [generatingGif, setGeneratingGif] = useState(false);
-  const [gifshotLoaded, setGifshotLoaded] = useState(false);
+  const [gifLoaded, setGifLoaded] = useState(false);
 
-  // Load gifshot script with fallback
+  // Load gif.js script with fallback
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const w = window as unknown as WindowWithGifshot;
-      if (w.gifshot) {
-        setTimeout(() => setGifshotLoaded(true), 0);
+      const w = window as unknown as WindowWithGif;
+      if (w.GIF) {
+        setTimeout(() => setGifLoaded(true), 0);
         return;
       }
 
-      const existing = document.querySelector('script[src*="gifshot"]');
+      const existing = document.querySelector('script[src*="gif.js"]');
       if (existing) {
         existing.addEventListener("load", () => {
-          setTimeout(() => setGifshotLoaded(true), 0);
+          setTimeout(() => setGifLoaded(true), 0);
         });
         setTimeout(() => {
-          if (w.gifshot) {
-            setGifshotLoaded(true);
+          if (w.GIF) {
+            setGifLoaded(true);
           }
         }, 1500);
         return;
@@ -82,7 +83,7 @@ export default function TrialGalleryPage() {
         script.src = src;
         script.async = true;
         script.onload = () => {
-          setTimeout(() => setGifshotLoaded(true), 0);
+          setTimeout(() => setGifLoaded(true), 0);
         };
         script.onerror = () => {
           script.remove();
@@ -92,13 +93,13 @@ export default function TrialGalleryPage() {
       };
 
       loadScript(
-        "https://cdnjs.cloudflare.com/ajax/libs/gifshot/0.5.8/gifshot.min.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js",
         () => {
           loadScript(
-            "https://unpkg.com/gifshot@0.5.8/build/gifshot.min.js",
+            "https://unpkg.com/gif.js@0.2.0/dist/gif.js",
             () => {
               loadScript(
-                "https://cdn.jsdelivr.net/npm/gifshot@0.5.8/build/gifshot.min.js",
+                "https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js",
                 () => {
                   console.error("All GIF CDNs failed to load.");
                 }
@@ -221,10 +222,10 @@ export default function TrialGalleryPage() {
     async (
       photosArray: typeof guestPhotos,
       eventLabel: string,
-    ): Promise<string[]> => {
+    ): Promise<HTMLCanvasElement[]> => {
       return Promise.all(
         photosArray.map(async (p) => {
-          return new Promise<string>((resolve) => {
+          return new Promise<HTMLCanvasElement>((resolve) => {
             const img = new window.Image();
             img.crossOrigin = "anonymous";
             img.onload = () => {
@@ -260,10 +261,13 @@ export default function TrialGalleryPage() {
                 );
                 ctx.restore();
               }
-              resolve(canvas.toDataURL("image/jpeg", 0.85));
+              resolve(canvas);
             };
             img.onerror = () => {
-              resolve(p.pictureUrl);
+              const canvas = document.createElement("canvas");
+              canvas.width = 600;
+              canvas.height = 800;
+              resolve(canvas);
             };
             img.src = p.pictureUrl;
           });
@@ -283,33 +287,62 @@ export default function TrialGalleryPage() {
     setGifUrl(null);
 
     try {
-      const frames = await preprocessFramesWithWatermark(selected, event?.name || "Kiranya Bahagia");
+      const cdns = [
+        "https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js",
+        "https://unpkg.com/gif.js@0.2.0/dist/gif.worker.js",
+        "https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js"
+      ];
 
-      const w = window as unknown as WindowWithGifshot;
-      if (w.gifshot) {
-        w.gifshot.createGIF(
-          {
-            images: frames,
-            interval: gifSpeed,
-            gifWidth: 300,
-            gifHeight: 400,
-            numWorkers: 2,
-          },
-          (obj: { error: boolean; image: string; errorMsg?: string }) => {
-            if (obj.error) {
-              console.error("Gifshot error:", obj.errorMsg);
-              alert("Gagal memproses GIF.");
-              setGeneratingGif(false);
-            } else {
-              setGifUrl(obj.image);
-              setGeneratingGif(false);
-            }
+      let workerBlob: Blob | null = null;
+      for (const url of cdns) {
+        try {
+          const res = await fetch(url);
+          if (res.ok) {
+            workerBlob = await res.blob();
+            break;
           }
-        );
-      } else {
+        } catch (e) {
+          console.warn("Failed to fetch worker from " + url, e);
+        }
+      }
+
+      if (!workerBlob) {
+        throw new Error("Failed to load GIF worker script from CDNs.");
+      }
+
+      const workerUrl = URL.createObjectURL(workerBlob);
+      const w = window as unknown as WindowWithGif;
+      if (!w.GIF) {
         alert("Pustaka pembuat GIF belum dimuat. Silakan coba lagi.");
         setGeneratingGif(false);
+        return;
       }
+
+      const frames = await preprocessFramesWithWatermark(selected, event?.name || "Kiranya Bahagia");
+
+      const gif = new w.GIF({
+        workers: 2,
+        quality: 10,
+        workerScript: workerUrl,
+        width: 300,
+        height: 400
+      });
+
+      for (const canvas of frames) {
+        gif.addFrame(canvas, { delay: gifSpeed * 1000, copy: true });
+      }
+
+      gif.on("finished", (blob: Blob) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setGifUrl(reader.result as string);
+          setGeneratingGif(false);
+          URL.revokeObjectURL(workerUrl);
+        };
+        reader.readAsDataURL(blob);
+      });
+
+      gif.render();
     } catch (err) {
       console.error(err);
       alert("Gagal membuat GIF.");
@@ -680,24 +713,7 @@ export default function TrialGalleryPage() {
 
             {/* Actions */}
             <div className="p-5 border-t border-border/40 shrink-0 flex flex-col gap-2">
-              {!gifUrl ? (
-                <button
-                  type="button"
-                  disabled={
-                    generatingGif ||
-                    !gifshotLoaded ||
-                    guestPhotos.filter((p) => p.id && checkedPhotos[p.id])
-                      .length < 2
-                  }
-                  onClick={generateGif}
-                  className="w-full bg-dark text-dark-text rounded-xl py-3.5 text-[13.5px] font-semibold active:scale-[0.98] transition-transform disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 mr-0.5">
-                    <path d="m15 4-2 2M19 8l-2-2M20 3l-2.5 2.5M10.5 12.5 3 20M14.5 8.5 7 16" />
-                  </svg>
-                  {!gifshotLoaded ? "Memuat Pustaka..." : "Buat Pratinjau GIF"}
-                </button>
-              ) : (
+              {gifUrl && (
                 <button
                   type="button"
                   onClick={() => {
@@ -716,6 +732,23 @@ export default function TrialGalleryPage() {
                   Unduh File GIF
                 </button>
               )}
+
+              <button
+                type="button"
+                disabled={
+                  generatingGif ||
+                  !gifLoaded ||
+                  guestPhotos.filter((p) => p.id && checkedPhotos[p.id])
+                    .length < 2
+                }
+                onClick={generateGif}
+                className="w-full bg-dark text-dark-text rounded-xl py-3.5 text-[13.5px] font-semibold active:scale-[0.98] transition-transform disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 mr-0.5">
+                  <path d="m15 4-2 2M19 8l-2-2M20 3l-2.5 2.5M10.5 12.5 3 20M14.5 8.5 7 16" />
+                </svg>
+                {generatingGif ? "Mengolah GIF..." : !gifLoaded ? "Memuat Pustaka..." : gifUrl ? "Buat Ulang Pratinjau GIF" : "Buat Pratinjau GIF"}
+              </button>
             </div>
           </div>
         </div>
