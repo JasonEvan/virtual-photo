@@ -1143,13 +1143,13 @@ export default function GuestPage() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Photo */}
-            <div className="relative">
+            <div className="relative bg-[#1C1815] flex items-center justify-center overflow-hidden">
               <Image
                 src={selectedPhoto.pictureUrl}
                 alt={selectedPhoto.guestName}
-                width={400}
-                height={533}
-                className="w-full aspect-3/4 object-cover"
+                width={600}
+                height={800}
+                className="w-full h-auto max-h-[65vh] object-contain"
               />
               <button
                 type="button"
