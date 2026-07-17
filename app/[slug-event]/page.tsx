@@ -622,9 +622,8 @@ export default function GuestPage() {
         <video ref={videoRef} autoPlay playsInline muted className="hidden" />
         <canvas ref={canvasRef} className="hidden" />
 
-        {/* ===== SCREEN: LANDING ===== */}
         {screen === "landing" && (
-          <div className="flex flex-col flex-1 min-h-dvh sm:min-h-dvh animate-[fadeIn_0.35s_ease]">
+          <div className="flex flex-col flex-1 min-h-dvh sm:min-h-dvh animate-[fadeIn_0.35s_ease] overflow-y-auto">
             {/* Brand Banner */}
             <div className="relative w-full h-16 bg-[#F8F8F8] shrink-0 border-b border-[#EBE5D9]">
               <Image
@@ -672,7 +671,7 @@ export default function GuestPage() {
             </div>
 
             {/* Body */}
-            <div className="px-6 py-5 flex-1 flex flex-col">
+            <div className="px-6 py-5 shrink-0">
               {/* Guest photos gallery */}
               {guestPhotos.length > 0 && (
                 <div className="mt-6 pt-5 border-t border-border">
@@ -710,15 +709,13 @@ export default function GuestPage() {
                       </button>
                     ))}
                   </div>
-                  {guestPhotos.length >= 9 && (
-                    <Link
-                      href={`/${event.slug}/gallery`}
-                      className="w-full border border-border-subtle rounded-xl py-3.5 text-[13px] font-medium text-text-primary flex items-center justify-center gap-2 mt-4 hover:bg-accent-hover transition-colors text-center"
-                    >
-                      <i className="ti ti-layout-grid text-accent" />
-                      Lihat Semua Foto
-                    </Link>
-                  )}
+                  <Link
+                    href={`/${event.slug}/gallery?guest=${guestId}`}
+                    className="w-full border border-border-subtle rounded-xl py-3.5 text-[13px] font-medium text-text-primary flex items-center justify-center gap-2 mt-4 hover:bg-accent-hover transition-colors text-center"
+                  >
+                    <i className="ti ti-layout-grid text-accent" />
+                    Lihat Semua Foto
+                  </Link>
                 </div>
               )}
             </div>

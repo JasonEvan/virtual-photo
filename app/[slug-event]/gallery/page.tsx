@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -21,6 +21,8 @@ interface GuestPhoto {
 
 export default function GalleryPage() {
   const { "slug-event": slug } = useParams();
+  const searchParams = useSearchParams();
+  const guestId = searchParams.get("guest");
   const [event, setEvent] = useState<Event | null>(null);
   const [guestPhotos, setGuestPhotos] = useState<GuestPhoto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -130,7 +132,7 @@ export default function GalleryPage() {
         {/* Topbar */}
         <div className="flex items-center gap-3 px-5 pt-4.5 pb-3.5 border-b border-border shrink-0">
           <Link
-            href={`/${event.slug}`}
+            href={`/${event.slug}?guest=${guestId}`}
             className="w-8.5 h-8.5 rounded-full bg-accent-hover flex items-center justify-center border-none cursor-pointer text-text-primary text-base shrink-0"
           >
             <i className="ti ti-chevron-left" />
