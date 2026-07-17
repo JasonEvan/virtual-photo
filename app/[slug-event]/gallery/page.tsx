@@ -35,6 +35,7 @@ export default function GalleryPage() {
   } | null>(null);
 
   const [downloading, setDownloading] = useState(false);
+  const [downloadingAll, setDownloadingAll] = useState(false);
 
   // Fetch Event
   useEffect(() => {
@@ -109,6 +110,35 @@ export default function GalleryPage() {
     [downloading],
   );
 
+  const handleDownloadAll = useCallback(async () => {
+    if (!event) return;
+    setDownloadingAll(true);
+    try {
+      const res = await fetch(`/api/events/${event.id}/download-all?guest=${guestId}`);
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error || "Gagal mengunduh ZIP.");
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const safeSlug = event.slug.replace(/[^a-zA-Z0-9]/g, "_");
+      link.download = `gallery-${safeSlug}-all-greetings.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert("Gagal mengunduh ZIP.");
+    } finally {
+      setDownloadingAll(false);
+    }
+  }, [event, guestId]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -145,6 +175,17 @@ export default function GalleryPage() {
               {event.name}
             </div>
           </div>
+          {guestPhotos.length > 0 && (
+            <button
+              type="button"
+              disabled={downloadingAll}
+              onClick={handleDownloadAll}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-accent bg-accent/5 hover:bg-accent/10 active:bg-accent/15 text-[11px] font-semibold text-accent cursor-pointer transition-colors disabled:opacity-50"
+            >
+              <i className={downloadingAll ? "ti ti-loader animate-spin" : "ti ti-download"} />
+              {downloadingAll ? "Unduh..." : "Unduh Semua"}
+            </button>
+          )}
         </div>
 
         {/* Scrollable Gallery Content */}

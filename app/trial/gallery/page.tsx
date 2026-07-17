@@ -31,6 +31,7 @@ export default function TrialGalleryPage() {
   } | null>(null);
 
   const [downloading, setDownloading] = useState(false);
+  const [downloadingAll, setDownloadingAll] = useState(false);
 
   // Initialize trial session and load photos from localStorage
   useEffect(() => {
@@ -96,6 +97,38 @@ export default function TrialGalleryPage() {
     [downloading],
   );
 
+  const handleDownloadAll = useCallback(async () => {
+    if (guestPhotos.length === 0) return;
+    setDownloadingAll(true);
+    try {
+      const res = await fetch("/api/trial/download-all", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photos: guestPhotos }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error || "Gagal mengunduh ZIP.");
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "gallery-trial-all-greetings.zip";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert("Gagal mengunduh ZIP.");
+    } finally {
+      setDownloadingAll(false);
+    }
+  }, [guestPhotos]);
+
   const handleClearGallery = useCallback(() => {
     if (
       confirm(
@@ -144,29 +177,40 @@ export default function TrialGalleryPage() {
             </div>
           </div>
           {guestPhotos.length > 0 && (
-            <button
-              type="button"
-              onClick={handleClearGallery}
-              className="w-8.5 h-8.5 rounded-full hover:bg-red-50 flex items-center justify-center border-none cursor-pointer transition-colors"
-              title="Kosongkan Galeri Uji Coba"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-4 h-4 text-red-500"
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                disabled={downloadingAll}
+                onClick={handleDownloadAll}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-accent bg-accent/5 hover:bg-accent/10 active:bg-accent/15 text-[11px] font-semibold text-accent cursor-pointer transition-colors disabled:opacity-50"
               >
-                <path d="M3 6h18" />
-                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-              </svg>
-            </button>
+                <i className={downloadingAll ? "ti ti-loader animate-spin" : "ti ti-download"} />
+                {downloadingAll ? "Unduh..." : "Unduh Semua"}
+              </button>
+              <button
+                type="button"
+                onClick={handleClearGallery}
+                className="w-8.5 h-8.5 rounded-full hover:bg-red-50 flex items-center justify-center border-none cursor-pointer transition-colors"
+                title="Kosongkan Galeri Uji Coba"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="w-4 h-4 text-red-500"
+                >
+                  <path d="M3 6h18" />
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                </svg>
+              </button>
+            </div>
           )}
         </div>
 

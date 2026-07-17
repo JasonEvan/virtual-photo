@@ -16,7 +16,7 @@ export async function POST(request: Request) {
       const parts = pictureUrl.split(",");
       const base64Data = parts[1];
       const mime = parts[0].split(";")[0].split(":")[1] || "image/jpeg";
-      const ext = mime.split("/")[1] || "jpg";
+      const ext = (mime.split(";")[0].split("/")[1] || "jpg").trim().replace(/[^a-zA-Z0-9]/g, "");
       const picBuffer = Buffer.from(base64Data, "base64");
       archive.append(picBuffer, { name: `foto.${ext}` });
     } else {
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       const parts = voiceUrl.split(",");
       const base64Data = parts[1];
       const mime = parts[0].split(";")[0].split(":")[1] || "audio/webm";
-      const ext = mime.split("/")[1] || "webm";
+      const ext = (mime.split(";")[0].split("/")[1] || "webm").trim().replace(/[^a-zA-Z0-9]/g, "");
       const audioBuffer = Buffer.from(base64Data, "base64");
       archive.append(audioBuffer, { name: `pesan_suara.${ext}` });
     }
