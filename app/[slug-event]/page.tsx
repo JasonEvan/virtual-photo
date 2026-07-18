@@ -98,6 +98,7 @@ export default function GuestPage() {
   const [selectedRatio, setSelectedRatio] = useState<"1:1" | "3:4" | "16:9">(
     "3:4",
   );
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
   const [processedFrame11, setProcessedFrame11] = useState<string | null>(null);
   const [processedFrame34, setProcessedFrame34] = useState<string | null>(null);
   const [processedFrame169, setProcessedFrame169] = useState<string | null>(
@@ -352,18 +353,37 @@ export default function GuestPage() {
   ]);
 
   // Camera management
-  const startCamera = useCallback(async () => {
+  const facingModeRef = useRef<"user" | "environment">("user");
+
+  useEffect(() => {
+    facingModeRef.current = facingMode;
+  }, [facingMode]);
+
+  const startCamera = useCallback(async (mode?: "user" | "environment") => {
+    const targetMode = mode || facingModeRef.current;
+    if (typeof window !== "undefined" && (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)) {
+      alert("Akses kamera gagal: Izin kamera dinonaktifkan oleh browser pada koneksi HTTP biasa. Pastikan Anda membuka halaman ini menggunakan koneksi HTTPS (SSL) yang aman di handphone Anda.");
+      return;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" },
+        video: { facingMode: targetMode },
         audio: false,
       });
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
-    } catch {
-      // Camera permission denied or unavailable
+    } catch (err) {
+      console.error("Camera access failed:", err);
+      alert("Gagal mengakses kamera. Silakan periksa pengaturan izin kamera browser Anda.");
     }
   }, []);
 
@@ -371,6 +391,9 @@ export default function GuestPage() {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
     }
   }, []);
 
@@ -390,6 +413,12 @@ export default function GuestPage() {
     setScreen(s);
   }, []);
 
+  const toggleCameraFacingMode = useCallback(() => {
+    const nextMode = facingMode === "user" ? "environment" : "user";
+    setFacingMode(nextMode);
+    startCamera(nextMode);
+  }, [facingMode, startCamera]);
+
   const takePhoto = useCallback(() => {
     if (chancesLeft === null || photosUsed >= chancesLeft) return;
     const video = videoRef.current;
@@ -401,15 +430,17 @@ export default function GuestPage() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    ctx.translate(canvas.width, 0);
-    ctx.scale(-1, 1);
+    if (facingMode === "user") {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
     setCapturedPhoto(dataUrl);
     setPhotosUsed((p) => p + 1);
     navigateTo("result");
-  }, [photosUsed, chancesLeft, navigateTo]);
+  }, [photosUsed, chancesLeft, navigateTo, facingMode]);
 
   const startRecording = useCallback(async () => {
     try {
@@ -840,23 +871,39 @@ export default function GuestPage() {
                 playsInline
                 muted
                 className="absolute inset-0 w-full h-full object-cover"
-                style={{ transform: "scaleX(-1)" }}
+                style={{ transform: facingMode === "user" ? "scaleX(-1)" : "none" }}
               />
               <div className="absolute top-4 left-4 bg-[rgba(28,24,21,0.6)] text-dark-text text-[11px] px-3 py-1.5 rounded-full font-medium">
                 Natural
               </div>
             </div>
 
-            {/* Controls */}
-            <div className="bg-dark py-5 px-6 shrink-0">
-              <div className="flex items-center justify-center">
-                <button
-                  type="button"
-                  onClick={takePhoto}
-                  className="w-16.5 h-16.5 rounded-full bg-dark-text border-4 border-[#6B6357] cursor-pointer active:scale-90 transition-transform"
-                  aria-label="Jepret foto"
-                />
-              </div>
+             {/* Controls */}
+             <div className="bg-dark py-5 px-6 shrink-0">
+               <div className="relative flex items-center justify-center">
+                 <div className="w-11.5 h-11.5" />
+                 <button
+                   key="capture-btn"
+                   type="button"
+                   onClick={takePhoto}
+                   className="w-16.5 h-16.5 rounded-full bg-dark-text border-4 border-[#6B6357] cursor-pointer active:scale-90 transition-transform mx-8"
+                   aria-label="Jepret foto"
+                 />
+                 <button
+                   key="camera-toggle-btn"
+                   type="button"
+                   onClick={toggleCameraFacingMode}
+                   className="w-11.5 h-11.5 rounded-full bg-[#3E3833] hover:bg-[#4E4741] active:scale-90 transition-all flex items-center justify-center text-dark-text border border-border/20 cursor-pointer"
+                   aria-label="Ganti Kamera"
+                 >
+                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-dark-text">
+                     <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                     <path d="M3 3v5h5" />
+                     <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                     <path d="M16 16h5v5" />
+                   </svg>
+                 </button>
+               </div>
               <div className="text-center text-[11.5px] text-[#A79B87] mt-3.5">
                 Foto ini akan memakai 1 dari{" "}
                 {chancesLeft !== null ? chancesLeft - photosUsed : 0}{" "}
